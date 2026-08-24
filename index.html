@@ -8,7 +8,7 @@
 content="width=device-width,initial-scale=1,
 maximum-scale=1,viewport-fit=cover">
 
-<title>FaceLive 2.9</title>
+<title>FaceLive 2.10</title>
 
 <style>
 *{
@@ -183,16 +183,16 @@ id="photoPreview"
 alt="Ảnh mẫu">
 
 <div id="message">
-<b>FaceLive 2.9</b><br>
+<b>FaceLive 2.10</b><br>
 <span style="opacity:.7">
-Natural Face Warp
+Full Face Morph
 </span>
 </div>
 
 <div id="top">
 
 <div id="title" class="panel">
-FaceLive 2.9
+FaceLive 2.10
 </div>
 
 <div id="stats" class="panel">
@@ -442,45 +442,6 @@ status.textContent =
 
 
 /* =========================================
-   LOAD MEDIAPIPE
-========================================= */
-
-async function loadMediaPipe(){
-
-setStatus(
-"Đang tải MediaPipe..."
-);
-
-const module =
-await import(
-"https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.0.1/+esm"
-);
-
-FaceLandmarker =
-module.FaceLandmarker;
-
-FilesetResolver =
-module.FilesetResolver;
-
-if(
-!FaceLandmarker ||
-!FilesetResolver
-){
-
-throw new Error(
-"MediaPipe module không đầy đủ"
-);
-
-}
-
-setStatus(
-"MediaPipe JavaScript OK"
-);
-
-}
-
-
-/* =========================================
    CAMERA
 ========================================= */
 
@@ -558,7 +519,46 @@ setStatus(
 
 
 /* =========================================
-   CAMERA LANDMARKER
+   LOAD MEDIAPIPE
+========================================= */
+
+async function loadMediaPipe(){
+
+setStatus(
+"Đang tải MediaPipe..."
+);
+
+const module =
+await import(
+"https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.0.1/+esm"
+);
+
+FaceLandmarker =
+module.FaceLandmarker;
+
+FilesetResolver =
+module.FilesetResolver;
+
+if(
+!FaceLandmarker ||
+!FilesetResolver
+){
+
+throw new Error(
+"MediaPipe module không đầy đủ"
+);
+
+}
+
+setStatus(
+"MediaPipe JavaScript OK"
+);
+
+}
+
+
+/* =========================================
+   CAMERA FACE LANDMARKER
 ========================================= */
 
 async function createCameraLandmarker(){
@@ -617,7 +617,7 @@ setStatus(
 
 
 /* =========================================
-   PHOTO LANDMARKER
+   PHOTO FACE LANDMARKER
 ========================================= */
 
 async function createImageLandmarker(){
@@ -798,7 +798,7 @@ url;
 
 
 /* =========================================
-   PHOTO FACE
+   PHOTO FACE DETECTION
 ========================================= */
 
 async function detectPhotoFace(){
@@ -807,9 +807,7 @@ if(
 !sourceImage ||
 !imageLandmarker
 ){
-
 return;
-
 }
 
 setStatus(
@@ -908,6 +906,39 @@ y:p.y*h
 
 
 /* =========================================
+   BUILD MESH
+========================================= */
+
+function buildMesh(
+landmarks,
+w,
+h
+){
+
+const points=[];
+
+for(
+let i=0;
+i<landmarks.length;
+i++
+){
+
+points.push(
+point(
+landmarks,
+i,
+w,
+h
+);
+
+}
+
+return points;
+
+}
+
+
+/* =========================================
    AFFINE
 ========================================= */
 
@@ -924,9 +955,7 @@ s3.x*(s1.y-s2.y);
 if(
 Math.abs(den)<0.00001
 ){
-
 return null;
-
 }
 
 const a =
@@ -1044,72 +1073,273 @@ ctx.restore();
 
 
 /* =========================================
-   MESH INDICES
+   CIRCUMCIRCLE
 ========================================= */
 
-const MESH_INDICES = [
+function circumcircle(a,b,c){
 
-10,338,297,332,284,251,389,356,454,
-323,361,288,397,365,379,378,400,377,
-152,148,176,149,150,136,172,58,132,
-93,234,127,162,21,54,103,67,109,
+const A =
+b.x-a.x;
 
-33,160,158,133,153,144,
-263,387,385,362,380,373,
+const B =
+b.y-a.y;
 
-1,2,98,327,168,197,5,4,
+const C =
+c.x-a.x;
 
-61,146,91,181,84,17,
-314,405,321,291,
+const Dd =
+c.y-a.y;
 
-13,82,81,312,311,308,
-402,317,14,
+const E =
+A*(a.x+b.x)+
+B*(a.y+b.y);
 
-78,95,88,178,87,191,
-80,81,82,
+const F =
+C*(a.x+c.x)+
+Dd*(a.y+c.y);
 
-234,93,132,58,172,
-454,323,361,288,397
+const G =
+2*(A*(c.y-b.y)-
+B*(c.x-b.x));
+
+if(
+Math.abs(G)<0.000001
+){
+return null;
+}
+
+const cx =
+(Dd*E-B*F)/G;
+
+const cy =
+(A*F-C*E)/G;
+
+const r2 =
+(cx-a.x)*(cx-a.x)+
+(cy-a.y)*(cy-a.y);
+
+return{
+x:cx,
+y:cy,
+r2
+};
+
+}
+
+
+/* =========================================
+   DELAUNAY
+========================================= */
+
+function triangulate(points){
+
+const pts =
+points.map(
+(p,i)=>({
+x:p.x,
+y:p.y,
+i
+})
+);
+
+let minX=Infinity;
+let minY=Infinity;
+let maxX=-Infinity;
+let maxY=-Infinity;
+
+for(
+const p of pts
+){
+
+minX =
+Math.min(minX,p.x);
+
+minY =
+Math.min(minY,p.y);
+
+maxX =
+Math.max(maxX,p.x);
+
+maxY =
+Math.max(maxY,p.y);
+
+}
+
+const dx =
+maxX-minX;
+
+const dy =
+maxY-minY;
+
+const delta =
+Math.max(dx,dy);
+
+const midX =
+(minX+maxX)/2;
+
+const midY =
+(minY+maxY)/2;
+
+const superPts=[
+
+{
+x:midX-delta*20,
+y:midY-delta*20,
+i:-1
+},
+
+{
+x:midX,
+y:midY+delta*20,
+i:-2
+},
+
+{
+x:midX+delta*20,
+y:midY-delta*20,
+i:-3
+}
 
 ];
 
+const all =
+pts.concat(superPts);
 
-/* =========================================
-   BUILD POINTS
-========================================= */
+let triangles=[
 
-function buildMesh(
-landmarks,
-w,
-h
-){
+[
+pts.length,
+pts.length+1,
+pts.length+2
+]
 
-const points=[];
+];
 
 for(
-let i=0;
-i<landmarks.length;
-i++
+let pIndex=0;
+pIndex<pts.length;
+pIndex++
 ){
 
-points.push(
-point(
-landmarks,
-i,
-w,
-h
-)
+const p =
+all[pIndex];
+
+const bad=[];
+
+for(
+const tri of triangles
+){
+
+const a =
+all[tri[0]];
+
+const b =
+all[tri[1]];
+
+const c =
+all[tri[2]];
+
+const circle =
+circumcircle(
+a,b,c
 );
+
+if(!circle)continue;
+
+const dist2 =
+(p.x-circle.x)*
+(p.x-circle.x)+
+(p.y-circle.y)*
+(p.y-circle.y);
+
+if(
+dist2 <=
+circle.r2+0.5
+){
+
+bad.push(tri);
 
 }
 
-return points;
+}
+
+const edges=[];
+
+for(
+const tri of bad
+){
+
+const e=[
+
+[tri[0],tri[1]],
+[tri[1],tri[2]],
+[tri[2],tri[0]]
+
+];
+
+for(
+const edge of e
+){
+
+const reverse =
+edges.findIndex(
+x =>
+x[0]===edge[1] &&
+x[1]===edge[0]
+);
+
+if(reverse>=0){
+
+edges.splice(
+reverse,
+1
+);
+
+}else{
+
+edges.push(edge);
+
+}
+
+}
+
+}
+
+triangles =
+triangles.filter(
+tri =>
+!bad.includes(tri)
+);
+
+for(
+const edge of edges
+){
+
+triangles.push([
+edge[0],
+edge[1],
+pIndex
+]);
+
+}
+
+}
+
+triangles =
+triangles.filter(
+tri =>
+tri[0]<pts.length &&
+tri[1]<pts.length &&
+tri[2]<pts.length
+);
+
+return triangles;
 
 }
 
 
 /* =========================================
-   DENSE WARP
+   FULL FACE MORPH 2.10
 ========================================= */
 
 function denseWarp(
@@ -1120,9 +1350,7 @@ if(
 !sourceLandmarks ||
 !mirroredPhoto
 ){
-
 return;
-
 }
 
 const sw =
@@ -1147,7 +1375,7 @@ canvas.height
 
 
 /* -----------------------------------------
-   EYE ALIGNMENT
+   EYES
 ----------------------------------------- */
 
 const sl =
@@ -1178,19 +1406,17 @@ if(
 sourceEye<1 ||
 targetEye<1
 ){
-
 return;
-
 }
 
 const scale =
 targetEye/sourceEye;
 
 const sourceCX =
-(sw*.5);
+(sl.x+sr.x)/2;
 
 const sourceCY =
-(sh*.50);
+(sl.y+sr.y)/2;
 
 const targetCX =
 (tl.x+tr.x)/2;
@@ -1200,159 +1426,170 @@ const targetCY =
 
 
 /* -----------------------------------------
-   WARP STRENGTH
+   WARP
 ----------------------------------------- */
 
 const strength =
 Number(warp.value)/100;
 
-
-/* -----------------------------------------
-   TARGET MAP
------------------------------------------ */
-
-const mapped = new Map();
+const D=[];
 
 for(
-const index
-of MESH_INDICES
+let i=0;
+i<S.length;
+i++
 ){
 
 const s =
-S[index];
+S[i];
 
 const t =
-T[index];
+T[i];
 
-const predictedX =
+const px =
 targetCX+
 (s.x-sourceCX)*scale;
 
-const predictedY =
+const py =
 targetCY+
 (s.y-sourceCY)*scale;
 
+const dx =
+t.x-targetCX;
 
-/*
-Blend giữa vị trí hình học
-và landmark thật.
-*/
+const dy =
+t.y-targetCY;
 
-const x =
-t.x*strength+
-predictedX*(1-strength);
-
-const y =
-t.y*strength+
-predictedY*(1-strength);
-
-mapped.set(
-index,
-{
-x,
-y
-}
+const dist =
+Math.sqrt(
+dx*dx+dy*dy
 );
 
+const radius =
+targetEye*1.75;
+
+let local =
+1-Math.min(
+1,
+dist/radius
+);
+
+local =
+.35+local*.65;
+
+let x =
+px*(1-strength)+
+t.x*strength;
+
+let y =
+py*(1-strength)+
+t.y*strength;
+
+x =
+t.x*(strength*local*.35)+
+x*(1-strength*local*.35);
+
+y =
+t.y*(strength*local*.35)+
+y*(1-strength*local*.35);
+
+
+/*
+Ổn định mắt và mũi.
+*/
+
+if(
+i===33 ||
+i===263 ||
+i===1
+){
+
+x =
+t.x*.72+x*.28;
+
+y =
+t.y*.72+y*.28;
+
+}
+
+D.push({
+x,
+y
+});
+
 }
 
 
 /* -----------------------------------------
-   TARGET
+   FACIAL POINT SELECTION
 ----------------------------------------- */
 
-function D(i){
+const indices=[];
 
-return mapped.get(i) || T[i];
+for(
+let i=0;
+i<S.length;
+i++
+){
+
+if(i%2===0){
+indices.push(i);
+}
 
 }
 
+const sourcePoints =
+indices.map(
+i=>S[i]
+);
+
+const targetPoints =
+indices.map(
+i=>D[i]
+);
+
 
 /* -----------------------------------------
-   BLEND
+   TRIANGULATE
 ----------------------------------------- */
 
-const alpha =
-Number(blend.value)/100;
-
-
-/* -----------------------------------------
-   TRIANGLE SET
------------------------------------------ */
-
-const triangles=[
-
-[10,33,234],
-[10,234,93],
-[10,93,109],
-
-[10,109,338],
-[10,338,297],
-[10,297,454],
-
-[10,454,263],
-
-[33,160,234],
-[160,158,93],
-[158,133,1],
-
-[133,362,1],
-[362,385,454],
-[385,263,454],
-
-[234,93,132],
-[93,162,132],
-[132,58,172],
-
-[454,323,361],
-[323,327,361],
-[361,288,397],
-
-[33,1,234],
-[263,454,1],
-
-[61,91,1],
-[91,181,1],
-[181,84,17],
-
-[17,314,405],
-[314,291,1],
-[405,321,291],
-
-[61,146,91],
-[91,84,17],
-[17,314,291],
-
-[61,152,234],
-[291,454,152],
-
-[152,234,172],
-[152,172,397],
-[152,397,454]
-
-];
+const triangles =
+triangulate(
+targetPoints
+);
 
 
 /* -----------------------------------------
    DRAW
 ----------------------------------------- */
 
+const alpha =
+Number(blend.value)/100;
+
 for(
-const tri
-of triangles
+const tri of triangles
 ){
+
+const ia =
+indices[tri[0]];
+
+const ib =
+indices[tri[1]];
+
+const ic =
+indices[tri[2]];
 
 drawTriangle(
 
 mirroredPhoto,
 
-S[tri[0]],
-S[tri[1]],
-S[tri[2]],
+S[ia],
+S[ib],
+S[ic],
 
-D(tri[0]),
-D(tri[1]),
-D(tri[2]),
+D[ia],
+D[ib],
+D[ic],
 
 alpha
 
@@ -1384,9 +1621,11 @@ const values =
 landmarks.map(
 p=>({
 
-x:(1-p.x)*canvas.width,
+x:(1-p.x)*
+canvas.width,
 
-y:p.y*canvas.height
+y:p.y*
+canvas.height
 
 })
 );
@@ -1402,8 +1641,7 @@ canvas.height;
 let maxY = 0;
 
 for(
-const p
-of values
+const p of values
 ){
 
 minX =
@@ -1446,14 +1684,6 @@ const ry =
 
 const amount =
 Number(feather.value)/100;
-
-
-/*
-Mask feather.
-
-Giữ trung tâm nguyên vẹn,
-chỉ làm mềm vùng ngoài.
-*/
 
 ctx.save();
 
@@ -1560,10 +1790,10 @@ photoState.textContent =
 "ON";
 
 mode.textContent =
-"FACE WARP";
+"FACE MORPH";
 
 setStatus(
-"FACE WARP OK"
+"FACE MORPH OK"
 );
 
 return;
@@ -1571,9 +1801,9 @@ return;
 }
 
 
-/* -----------------------------------------
-   TRACKING MODE
------------------------------------------ */
+/* =========================================
+   TRACKING
+========================================= */
 
 ctx.fillStyle =
 "#34c759";
@@ -1625,7 +1855,9 @@ setStatus(
 
 function processFrame(now){
 
-if(!running)return;
+if(!running){
+return;
+}
 
 cameraFrames++;
 
@@ -1678,7 +1910,9 @@ result.faceLandmarks || [];
 faces.textContent =
 detected.length;
 
-if(detected.length){
+if(
+detected.length
+){
 
 drawResult(
 detected[0]
@@ -1712,7 +1946,7 @@ error
 );
 
 setStatus(
-"FACE WARP ERROR"
+"FACE MORPH ERROR"
 );
 
 }
@@ -1787,7 +2021,7 @@ start.disabled=false;
 
 
 /* =========================================
-   INITIAL
+   READY
 ========================================= */
 
 setStatus(
