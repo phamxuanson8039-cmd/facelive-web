@@ -3,15 +3,10 @@
 <html lang="vi">
 <head>
 <meta charset="utf-8">
-
-<meta name="viewport"
-content="width=device-width,initial-scale=1,
-maximum-scale=1,viewport-fit=cover">
-
-<title>FaceLive 2.7</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
+<title>FaceLive 2.8</title>
 
 <style>
-
 *{box-sizing:border-box}
 
 html,body{
@@ -55,7 +50,7 @@ align-items:flex-start
 }
 
 .panel{
-background:rgba(0,0,0,.70);
+background:rgba(0,0,0,.72);
 border-radius:15px;
 padding:12px
 }
@@ -113,26 +108,31 @@ color:#fff;
 font-size:15px
 }
 
-#blendBox{
+#controls{
 display:none;
-background:rgba(0,0,0,.70);
+background:rgba(0,0,0,.72);
 border-radius:14px;
 padding:10px;
 margin-top:8px;
 font-size:13px
 }
 
-#blend{
+#controls input{
 width:100%
+}
+
+.controlRow{
+margin-top:5px;
+margin-bottom:8px
 }
 
 #photoPreview{
 display:none;
 position:fixed;
 right:12px;
-bottom:215px;
-width:100px;
-height:125px;
+bottom:230px;
+width:95px;
+height:120px;
 object-fit:cover;
 border-radius:14px;
 border:2px solid #34c759;
@@ -154,39 +154,28 @@ z-index:5
 .green{color:#34c759}
 .yellow{color:#ffcc00}
 .red{color:#ff453a}
-
 </style>
 </head>
 
 <body>
 
-<video
-id="video"
-autoplay
-playsinline
-muted>
-</video>
+<video id="video" autoplay playsinline muted></video>
 
 <canvas id="canvas"></canvas>
 
-<img
-id="photoPreview"
-alt="Ảnh mẫu">
+<img id="photoPreview" alt="Ảnh mẫu">
 
 <div id="message">
-
-<b>FaceLive 2.7</b><br>
-
+<b>FaceLive 2.8</b><br>
 <span style="opacity:.7">
-Realtime Face Warp
+Dense Face Mesh Warp
 </span>
-
 </div>
 
 <div id="top">
 
 <div id="title" class="panel">
-FaceLive 2.7
+FaceLive 2.8
 </div>
 
 <div id="stats" class="panel">
@@ -234,12 +223,8 @@ Mode:
 ● Chưa khởi động
 </div>
 
-<button
-id="start"
-type="button">
-
+<button id="start" type="button">
 START FACELIVE
-
 </button>
 
 <input
@@ -247,16 +232,31 @@ id="photoInput"
 type="file"
 accept="image/*">
 
-<div id="blendBox">
+<div id="controls">
 
-Blend / mức hòa trộn:
+<div class="controlRow">
+Warp:
+<b id="warpValue">82</b>%
+</div>
 
 <input
-id="blend"
+id="warp"
 type="range"
 min="0"
 max="100"
-value="78">
+value="82">
+
+<div class="controlRow">
+Feather:
+<b id="featherValue">72</b>%
+</div>
+
+<input
+id="feather"
+type="range"
+min="20"
+max="100"
+value="72">
 
 </div>
 
@@ -271,11 +271,9 @@ value="78">
 ========================================= */
 
 let FaceLandmarker = null;
-
 let FilesetResolver = null;
 
 let cameraLandmarker = null;
-
 let imageLandmarker = null;
 
 
@@ -328,11 +326,20 @@ document.getElementById("photoInput");
 const photoPreview =
 document.getElementById("photoPreview");
 
-const blendBox =
-document.getElementById("blendBox");
+const controls =
+document.getElementById("controls");
 
-const blend =
-document.getElementById("blend");
+const warp =
+document.getElementById("warp");
+
+const feather =
+document.getElementById("feather");
+
+const warpValue =
+document.getElementById("warpValue");
+
+const featherValue =
+document.getElementById("featherValue");
 
 
 /* =========================================
@@ -364,11 +371,23 @@ let sourceLandmarks = null;
 ========================================= */
 
 function setStatus(text){
-
-status.textContent =
-"● " + text;
-
+status.textContent = "● " + text;
 }
+
+
+/* =========================================
+   CONTROLS
+========================================= */
+
+warp.oninput = function(){
+warpValue.textContent =
+warp.value;
+};
+
+feather.oninput = function(){
+featherValue.textContent =
+feather.value;
+};
 
 
 /* =========================================
@@ -377,9 +396,7 @@ status.textContent =
 
 async function loadMediaPipe(){
 
-setStatus(
-"Đang tải MediaPipe..."
-);
+setStatus("Đang tải MediaPipe...");
 
 const module =
 await import(
@@ -396,11 +413,9 @@ if(
 !FaceLandmarker ||
 !FilesetResolver
 ){
-
 throw new Error(
 "MediaPipe module không đầy đủ"
 );
-
 }
 
 setStatus(
@@ -424,11 +439,9 @@ if(
 !navigator.mediaDevices ||
 !navigator.mediaDevices.getUserMedia
 ){
-
 throw new Error(
 "Camera API không được hỗ trợ"
 );
-
 }
 
 stream =
@@ -438,11 +451,8 @@ audio:false,
 
 video:{
 facingMode:"user",
-
 width:{ideal:1280},
-
 height:{ideal:720},
-
 frameRate:{ideal:30}
 }
 
@@ -456,14 +466,9 @@ await video.play();
 await new Promise(resolve=>{
 
 if(video.videoWidth>0){
-
 resolve();
-
 }else{
-
-video.onloadedmetadata =
-resolve;
-
+video.onloadedmetadata = resolve;
 }
 
 });
@@ -482,7 +487,7 @@ setStatus(
 
 
 /* =========================================
-   CAMERA AI
+   CAMERA FACE LANDMARKER
 ========================================= */
 
 async function createCameraLandmarker(){
@@ -541,7 +546,7 @@ setStatus(
 
 
 /* =========================================
-   PHOTO AI
+   PHOTO FACE LANDMARKER
 ========================================= */
 
 async function createImageLandmarker(){
@@ -626,10 +631,7 @@ c.width,
 0
 );
 
-cctx.scale(
--1,
-1
-);
+cctx.scale(-1,1);
 
 cctx.drawImage(
 sourceImage,
@@ -731,9 +733,7 @@ if(
 !sourceImage ||
 !imageLandmarker
 ){
-
 return;
-
 }
 
 setStatus(
@@ -763,13 +763,12 @@ setStatus(
 );
 
 return;
-
 }
 
 sourceLandmarks =
 detected[0];
 
-blendBox.style.display =
+controls.style.display =
 "block";
 
 mode.textContent =
@@ -781,7 +780,7 @@ setStatus(
 
 message.innerHTML =
 "<b class='green'>PHOTO FACE OK</b><br>" +
-"Đã căn chỉnh ảnh mẫu";
+"Ảnh mẫu đã sẵn sàng";
 
 message.style.display =
 "block";
@@ -790,7 +789,7 @@ setTimeout(
 ()=>{
 message.style.display="none";
 },
-1200
+1000
 );
 
 }catch(error){
@@ -807,29 +806,10 @@ setStatus(
 
 
 /* =========================================
-   POINTS
+   POINT
 ========================================= */
 
-function camPoint(
-landmarks,
-index
-){
-
-const p =
-landmarks[index];
-
-return{
-
-x:(1-p.x)*canvas.width,
-
-y:p.y*canvas.height
-
-};
-
-}
-
-
-function photoPoint(
+function point(
 landmarks,
 index,
 w,
@@ -840,18 +820,15 @@ const p =
 landmarks[index];
 
 return{
-
 x:(1-p.x)*w,
-
 y:p.y*h
-
 };
 
 }
 
 
 /* =========================================
-   AFFINE TRANSFORM
+   AFFINE
 ========================================= */
 
 function affine(
@@ -860,7 +837,6 @@ d1,d2,d3
 ){
 
 const den =
-
 s1.x*(s2.y-s3.y)+
 s2.x*(s3.y-s1.y)+
 s3.x*(s1.y-s2.y);
@@ -868,57 +844,49 @@ s3.x*(s1.y-s2.y);
 if(
 Math.abs(den)<0.00001
 ){
-
 return null;
-
 }
 
-const a = (
-
+const a =
+(
 d1.x*(s2.y-s3.y)+
 d2.x*(s3.y-s1.y)+
 d3.x*(s1.y-s2.y)
-
 )/den;
 
-const c = (
-
+const c =
+(
 d1.x*(s3.x-s2.x)+
 d2.x*(s1.x-s3.x)+
 d3.x*(s2.x-s1.x)
-
 )/den;
 
-const e = (
-
+const e =
+(
 d1.x*(s2.x*s3.y-s3.x*s2.y)+
 d2.x*(s3.x*s1.y-s1.x*s3.y)+
 d3.x*(s1.x*s2.y-s2.x*s1.y)
-
 )/den;
 
-const b = (
-
+const b =
+(
 d1.y*(s2.y-s3.y)+
 d2.y*(s3.y-s1.y)+
 d3.y*(s1.y-s2.y)
-
 )/den;
 
-const d = (
-
+const d =
+(
 d1.y*(s3.x-s2.x)+
 d2.y*(s1.x-s3.x)+
 d3.y*(s2.x-s1.x)
-
 )/den;
 
-const f = (
-
+const f =
+(
 d1.y*(s2.x*s3.y-s3.x*s2.y)+
 d2.y*(s3.x*s1.y-s1.x*s3.y)+
 d3.y*(s1.x*s2.y-s2.x*s1.y)
-
 )/den;
 
 return{
@@ -954,32 +922,15 @@ alpha;
 
 ctx.beginPath();
 
-ctx.moveTo(
-d1.x,
-d1.y
-);
-
-ctx.lineTo(
-d2.x,
-d2.y
-);
-
-ctx.lineTo(
-d3.x,
-d3.y
-);
-
+ctx.moveTo(d1.x,d1.y);
+ctx.lineTo(d2.x,d2.y);
+ctx.lineTo(d3.x,d3.y);
 ctx.closePath();
 
 ctx.clip();
 
 ctx.setTransform(
-m.a,
-m.b,
-m.c,
-m.d,
-m.e,
-m.f
+m.a,m.b,m.c,m.d,m.e,m.f
 );
 
 ctx.drawImage(
@@ -994,20 +945,88 @@ ctx.restore();
 
 
 /* =========================================
-   FACE WARP
+   DENSE MESH
 ========================================= */
 
-function faceWarp(
-landmarks
+function buildMesh(
+landmarks,
+w,
+h
+){
+
+const points = [];
+
+for(let i=0;i<landmarks.length;i++){
+
+points.push(
+point(
+landmarks,
+i,
+w,
+h
+)
+);
+
+}
+
+return points;
+
+}
+
+
+/*
+MediaPipe Face Mesh có 478 điểm
+trong phiên bản hiện tại.
+
+Thay vì dùng toàn bộ 478 điểm
+để tạo Delaunay triangulation
+mỗi frame, ta dùng một tập
+điểm phủ đều khuôn mặt.
+
+Điều này giữ FPS cao hơn trên iPhone.
+*/
+
+const MESH_INDICES = [
+
+10,338,297,332,284,251,389,356,454,
+323,361,288,397,365,379,378,400,377,
+152,148,176,149,150,136,172,58,132,
+93,234,127,162,21,54,103,67,109,
+
+33,160,158,133,153,144,
+263,387,385,362,380,373,
+
+1,2,98,327,168,197,5,4,
+
+61,146,91,181,84,17,314,405,321,291,
+
+13,82,81,312,311,308,402,317,14,
+
+78,95,88,178,87,178,191,
+80,81,82,13,312,311,308,
+
+234,93,132,58,172,
+454,323,361,288,397,
+
+10,151,9,8,168,
+152,175,199,200
+
+];
+
+
+/* =========================================
+   DENSE WARP
+========================================= */
+
+function denseWarp(
+cameraLandmarks
 ){
 
 if(
 !sourceLandmarks ||
 !mirroredPhoto
 ){
-
 return;
-
 }
 
 const sw =
@@ -1018,253 +1037,394 @@ mirroredPhoto.naturalHeight;
 
 
 /*
-SOURCE
+Nguồn.
 */
 
-const S = {
-
-forehead:
-photoPoint(sourceLandmarks,10,sw,sh),
-
-leftEye:
-photoPoint(sourceLandmarks,33,sw,sh),
-
-rightEye:
-photoPoint(sourceLandmarks,263,sw,sh),
-
-leftFace:
-photoPoint(sourceLandmarks,234,sw,sh),
-
-rightFace:
-photoPoint(sourceLandmarks,454,sw,sh),
-
-nose:
-photoPoint(sourceLandmarks,1,sw,sh),
-
-leftMouth:
-photoPoint(sourceLandmarks,61,sw,sh),
-
-rightMouth:
-photoPoint(sourceLandmarks,291,sw,sh),
-
-chin:
-photoPoint(sourceLandmarks,152,sw,sh)
-
-};
-
-
-/*
-TARGET
-*/
-
-const T = {
-
-forehead:
-camPoint(landmarks,10),
-
-leftEye:
-camPoint(landmarks,33),
-
-rightEye:
-camPoint(landmarks,263),
-
-leftFace:
-camPoint(landmarks,234),
-
-rightFace:
-camPoint(landmarks,454),
-
-nose:
-camPoint(landmarks,1),
-
-leftMouth:
-camPoint(landmarks,61),
-
-rightMouth:
-camPoint(landmarks,291),
-
-chin:
-camPoint(landmarks,152)
-
-};
-
-
-/*
-Một chút mở rộng
-để tránh viền cứng.
-*/
-
-const eyeDist =
-Math.hypot(
-T.rightEye.x-T.leftEye.x,
-T.rightEye.y-T.leftEye.y
+const sourcePoints =
+buildMesh(
+sourceLandmarks,
+sw,
+sh
 );
 
-const expand =
-eyeDist*.08;
 
-T.leftFace.x -= expand;
+/*
+Đích.
+*/
 
-T.rightFace.x += expand;
-
-T.forehead.y -= expand*.35;
-
-T.chin.y += expand*.25;
+const targetPoints =
+buildMesh(
+cameraLandmarks,
+canvas.width,
+canvas.height
+);
 
 
 /*
-Blend.
+Tâm và scale theo khoảng cách mắt.
+*/
+
+const sl =
+sourcePoints[33];
+
+const sr =
+sourcePoints[263];
+
+const tl =
+targetPoints[33];
+
+const tr =
+targetPoints[263];
+
+const sourceEye =
+Math.hypot(
+sr.x-sl.x,
+sr.y-sl.y
+);
+
+const targetEye =
+Math.hypot(
+tr.x-tl.x,
+tr.y-tl.y
+);
+
+if(
+sourceEye<1 ||
+targetEye<1
+){
+return;
+}
+
+const scale =
+targetEye/sourceEye;
+
+const sourceCX =
+(sw*.5);
+
+const sourceCY =
+(sh*.50);
+
+const targetCX =
+(
+tl.x+tr.x
+)/2;
+
+const targetCY =
+(
+tl.y+tr.y
+)/2;
+
+
+/*
+Warp strength.
+
+100 = toàn bộ.
+
+82 = mặc định.
+*/
+
+const strength =
+Number(warp.value)/100;
+
+
+/*
+Tạo mapping điểm.
+*/
+
+const mapped = [];
+
+for(
+const index
+of MESH_INDICES
+){
+
+const s =
+sourcePoints[index];
+
+const rawX =
+targetCX+
+(s.x-sourceCX)*scale;
+
+const rawY =
+targetCY+
+(s.y-sourceCY)*scale;
+
+const t =
+targetPoints[index];
+
+mapped.push({
+
+index,
+
+s,
+
+t:{
+
+x:
+t.x*strength+
+rawX*(1-strength),
+
+y:
+t.y*strength+
+rawY*(1-strength)
+
+}
+
+});
+
+}
+
+
+/*
+Các vùng chính được render
+với nhiều tam giác lớn.
+
+Các điểm trung tâm giúp
+giảm biến dạng quá mạnh.
+*/
+
+const S = sourcePoints;
+const T = targetPoints;
+
+
+/*
+Hàm lấy target có blend.
+*/
+
+function D(i){
+
+const found =
+mapped.find(
+p=>p.index===i
+);
+
+return found
+?found.t
+:T[i];
+
+}
+
+
+/*
+Alpha.
 */
 
 const alpha =
-Number(blend.value)/100;
+.78;
 
 
 /*
-=========================================
-8 TRIANGLES
-=========================================
+Mesh triangles.
 */
 
+const triangles = [
+
+[10,33,234],
+[10,234,93],
+[10,93,109],
+[10,109,338],
+[10,338,297],
+[10,297,454],
+[10,454,263],
+
+[33,160,234],
+[160,158,93],
+[158,133,1],
+[133,362,1],
+[362,385,454],
+[385,263,454],
+
+[234,93,132],
+[93,162,132],
+[132,58,172],
+
+[454,323,361],
+[323,327,361],
+[361,288,397],
+
+[33,1,234],
+[263,454,1],
+
+[61,91,1],
+[91,181,1],
+[181,84,17],
+[17,314,405],
+[314,291,1],
+[405,321,291],
+
+[1,61,291],
+
+[61,146,91],
+[91,84,17],
+[17,314,291],
+[291,405,321],
+
+[61,152,234],
+[291,454,152],
+[152,234,172],
+[152,172,397],
+[152,397,454]
+
+];
+
+
+for(
+const tri
+of triangles
+){
+
+const a=tri[0];
+const b=tri[1];
+const c=tri[2];
+
 drawTriangle(
+
 mirroredPhoto,
 
-S.forehead,
-S.leftEye,
-S.leftFace,
+S[a],
+S[b],
+S[c],
 
-T.forehead,
-T.leftEye,
-T.leftFace,
+D(a),
+D(b),
+D(c),
 
 alpha
+
 );
 
-drawTriangle(
-mirroredPhoto,
+}
 
-S.forehead,
-S.rightFace,
-S.rightEye,
 
-T.forehead,
-T.rightFace,
-T.rightEye,
+/*
+Feather mềm quanh mặt.
+*/
 
-alpha
-);
-
-drawTriangle(
-mirroredPhoto,
-
-S.leftEye,
-S.nose,
-S.leftFace,
-
-T.leftEye,
-T.nose,
-T.leftFace,
-
-alpha
-);
-
-drawTriangle(
-mirroredPhoto,
-
-S.nose,
-S.rightEye,
-S.rightFace,
-
-T.nose,
-T.rightEye,
-T.rightFace,
-
-alpha
-);
-
-drawTriangle(
-mirroredPhoto,
-
-S.nose,
-S.leftMouth,
-S.leftFace,
-
-T.nose,
-T.leftMouth,
-T.leftFace,
-
-alpha
-);
-
-drawTriangle(
-mirroredPhoto,
-
-S.nose,
-S.rightFace,
-S.rightMouth,
-
-T.nose,
-T.rightFace,
-T.rightMouth,
-
-alpha
-);
-
-drawTriangle(
-mirroredPhoto,
-
-S.leftMouth,
-S.chin,
-S.leftFace,
-
-T.leftMouth,
-T.chin,
-T.leftFace,
-
-alpha
-);
-
-drawTriangle(
-mirroredPhoto,
-
-S.chin,
-S.rightMouth,
-S.rightFace,
-
-T.chin,
-T.rightMouth,
-T.rightFace,
-
-alpha
+applyFeather(
+cameraLandmarks
 );
 
 
 /*
-=========================================
-CENTER FACE
-=========================================
+Điểm vàng để kiểm tra
+alignment.
 */
 
-drawTriangle(
-mirroredPhoto,
-
-S.leftEye,
-S.rightEye,
-S.nose,
-
-T.leftEye,
-T.rightEye,
-T.nose,
-
-alpha
+drawControlPoints(
+cameraLandmarks
 );
 
+}
 
-/*
-=========================================
-YELLOW CONTROL POINTS
-=========================================
-*/
+
+/* =========================================
+   FEATHER
+========================================= */
+
+function applyFeather(
+landmarks
+){
+
+const values =
+landmarks.map(
+p=>({
+x:(1-p.x)*canvas.width,
+y:p.y*canvas.height
+})
+);
+
+let minX=canvas.width;
+let maxX=0;
+let minY=canvas.height;
+let maxY=0;
+
+for(
+const p of values
+){
+
+minX=Math.min(minX,p.x);
+maxX=Math.max(maxX,p.x);
+minY=Math.min(minY,p.y);
+maxY=Math.max(maxY,p.y);
+
+}
+
+const cx =
+(minX+maxX)/2;
+
+const cy =
+(minY+maxY)/2;
+
+const rx =
+(maxX-minX)*.54;
+
+const ry =
+(maxY-minY)*.56;
+
+const amount =
+Number(feather.value)/100;
+
+ctx.save();
+
+ctx.globalCompositeOperation =
+"destination-out";
+
+const g =
+ctx.createRadialGradient(
+
+cx,
+cy,
+Math.min(rx,ry)*.64,
+
+cx,
+cy,
+Math.max(rx,ry)
+
+);
+
+g.addColorStop(
+0,
+"rgba(0,0,0,0)"
+);
+
+g.addColorStop(
+.72,
+"rgba(0,0,0,0)"
+);
+
+g.addColorStop(
+.88,
+`rgba(0,0,0,${.38*amount})`
+);
+
+g.addColorStop(
+1,
+"rgba(0,0,0,1)"
+);
+
+ctx.fillStyle=g;
+
+ctx.beginPath();
+
+ctx.ellipse(
+cx,cy,rx,ry,
+0,0,Math.PI*2
+);
+
+ctx.fill();
+
+ctx.restore();
+
+}
+
+
+/* =========================================
+   CONTROL POINTS
+========================================= */
+
+function drawControlPoints(
+landmarks
+){
 
 ctx.save();
 
@@ -1275,24 +1435,34 @@ ctx.setTransform(
 ctx.fillStyle =
 "#ffcc00";
 
-const points = [
-T.leftEye,
-T.rightEye,
-T.nose,
-T.leftMouth,
-T.rightMouth
+const indices =
+[
+33,
+263,
+1,
+61,
+291
 ];
 
 for(
-const p of points
+const i
+of indices
 ){
+
+const p =
+point(
+landmarks,
+i,
+canvas.width,
+canvas.height
+);
 
 ctx.beginPath();
 
 ctx.arc(
 p.x,
 p.y,
-2.5,
+2.3,
 0,
 Math.PI*2
 );
@@ -1307,7 +1477,7 @@ ctx.restore();
 
 
 /* =========================================
-   DRAW RESULT
+   DRAW
 ========================================= */
 
 function drawResult(
@@ -1325,18 +1495,17 @@ canvas.width,
 canvas.height
 );
 
+faces.textContent =
+"1";
 
 if(
 sourceLandmarks &&
 mirroredPhoto
 ){
 
-faceWarp(
+denseWarp(
 landmarks
 );
-
-faces.textContent =
-"1";
 
 photoFaces.textContent =
 "1";
@@ -1352,13 +1521,12 @@ setStatus(
 );
 
 return;
-
 }
 
 
 /*
-Chưa có ảnh:
-hiện mesh xanh.
+Không có ảnh:
+mesh xanh.
 */
 
 ctx.fillStyle =
@@ -1382,11 +1550,7 @@ p.y*canvas.height;
 ctx.beginPath();
 
 ctx.arc(
-x,
-y,
-1.6,
-0,
-Math.PI*2
+x,y,1.5,0,Math.PI*2
 );
 
 ctx.fill();
@@ -1431,7 +1595,6 @@ fpsTime=now;
 
 }
 
-
 if(
 cameraLandmarker &&
 video.readyState>=2 &&
@@ -1463,9 +1626,7 @@ result.faceLandmarks || [];
 faces.textContent =
 detected.length;
 
-if(
-detected.length
-){
+if(detected.length){
 
 drawResult(
 detected[0]
@@ -1531,14 +1692,6 @@ await createCameraLandmarker();
 
 await createImageLandmarker();
 
-if(sourceImage){
-
-createMirroredPhoto();
-
-await detectPhotoFace();
-
-}
-
 running=true;
 
 message.style.display="none";
@@ -1563,9 +1716,7 @@ setStatus(
 message.innerHTML=
 
 "<b class='red'>FACELIVE ERROR</b>" +
-
 "<br><br>" +
-
 error.message;
 
 message.style.display="block";
@@ -1578,11 +1729,11 @@ start.disabled=false;
 
 
 /* =========================================
-   READY
+   INITIAL
 ========================================= */
 
 setStatus(
-"Sẵn sàng - chọn ảnh hoặc START"
+"Sẵn sàng - START rồi chọn ảnh"
 );
 
 </script>
