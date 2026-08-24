@@ -4,48 +4,126 @@
 <meta charset="utf-8">
 
 <meta name="viewport"
-content="width=device-width,initial-scale=1,
-maximum-scale=1,viewport-fit=cover">
+content="width=device-width,
+initial-scale=1,
+maximum-scale=1,
+viewport-fit=cover">
 
-<title>FaceLive TEST</title>
+<title>FaceLive 2.0</title>
 
 <style>
+
+*{
+box-sizing:border-box;
+}
+
 html,body{
-    margin:0;
-    padding:0;
-    width:100%;
-    height:100%;
-    background:#000;
-    color:#fff;
-    font-family:Arial,sans-serif;
+margin:0;
+padding:0;
+width:100%;
+height:100%;
+overflow:hidden;
+background:#000;
+color:#fff;
+font-family:Arial,sans-serif;
 }
 
 #app{
-    padding:25px;
+position:fixed;
+inset:0;
+background:#000;
 }
 
-button,label{
-    display:block;
-    width:100%;
-    padding:18px;
-    margin-top:15px;
-    border:0;
-    border-radius:15px;
-    background:#333;
-    color:#fff;
-    font-size:18px;
-    font-weight:bold;
-    text-align:center;
+#video{
+position:absolute;
+inset:0;
+width:100%;
+height:100%;
+object-fit:cover;
+transform:scaleX(-1);
+background:#000;
 }
 
-#result{
-    margin-top:30px;
-    font-size:18px;
+#canvas{
+position:absolute;
+inset:0;
+width:100%;
+height:100%;
+pointer-events:none;
 }
 
-input{
-    display:none;
+.panel{
+background:rgba(0,0,0,.65);
+border-radius:15px;
+padding:12px;
 }
+
+#top{
+position:absolute;
+top:15px;
+left:12px;
+right:12px;
+display:flex;
+justify-content:space-between;
+z-index:10;
+}
+
+#title{
+font-size:19px;
+font-weight:bold;
+}
+
+#stats{
+font-size:12px;
+line-height:1.7;
+text-align:right;
+}
+
+#bottom{
+position:absolute;
+left:12px;
+right:12px;
+bottom:15px;
+z-index:20;
+}
+
+button{
+display:block;
+width:100%;
+padding:17px;
+margin-top:8px;
+border:0;
+border-radius:16px;
+background:#333;
+color:#fff;
+font-size:17px;
+font-weight:bold;
+}
+
+#status{
+display:inline-block;
+font-size:14px;
+}
+
+#message{
+position:absolute;
+top:50%;
+left:20px;
+right:20px;
+transform:translateY(-50%);
+text-align:center;
+font-size:16px;
+z-index:5;
+}
+
+.green{
+color:#34c759;
+}
+
+.red{
+color:#ff453a;
+}
+
 </style>
 </head>
 
@@ -53,72 +131,506 @@ input{
 
 <div id="app">
 
-<h1>FaceLive TEST</h1>
+<video
+id="video"
+autoplay
+playsinline
+muted>
+</video>
+
+<canvas id="canvas"></canvas>
+
+<div id="message">
+<b>FaceLive 2.0</b>
+<br>
+<span style="opacity:.7">
+Camera + Face Mesh
+</span>
+</div>
+
+
+<div id="top">
+
+<div id="title" class="panel">
+FaceLive 2.0
+</div>
+
+<div id="stats" class="panel">
+
+Camera:
+<b id="camera">
+--
+</b>
+FPS
+
+<br>
+
+AI:
+<b id="ai">
+--
+</b>
+FPS
+
+<br>
+
+Faces:
+<b id="faces">
+0
+</b>
+
+<br>
+
+Resolution:
+<b id="resolution">
+--
+</b>
+
+</div>
+
+</div>
+
+
+<div id="bottom">
+
+<div id="status" class="panel">
+● Chưa khởi động
+</div>
 
 <button id="start">
 START FACELIVE
 </button>
 
-<label for="photo">
-📷 CHỌN ẢNH
-</label>
-
-<input
-id="photo"
-type="file"
-accept="image/*">
-
-<div id="result">
-JavaScript đang kiểm tra...
 </div>
 
 </div>
+
 
 <script>
 
-const result =
-document.getElementById("result");
+/* =================================================
+   ELEMENTS
+================================================= */
+
+const video =
+document.getElementById("video");
+
+const canvas =
+document.getElementById("canvas");
+
+const ctx =
+canvas.getContext("2d");
 
 const start =
 document.getElementById("start");
 
-const photo =
-document.getElementById("photo");
+const status =
+document.getElementById("status");
+
+const message =
+document.getElementById("message");
+
+const cameraFPS =
+document.getElementById("camera");
+
+const aiFPS =
+document.getElementById("ai");
+
+const faces =
+document.getElementById("faces");
+
+const resolution =
+document.getElementById("resolution");
 
 
-result.textContent =
-"① JAVASCRIPT OK";
+/* =================================================
+   STATE
+================================================= */
+
+let stream = null;
+
+let landmarker = null;
+
+let running = false;
+
+let lastVideoTime = -1;
+
+let cameraFrames = 0;
+
+let aiFrames = 0;
+
+let fpsTime = performance.now();
 
 
-start.onclick =
-function(){
+/* =================================================
+   STATUS
+================================================= */
 
-result.textContent =
-"② BUTTON OK";
+function setStatus(text){
 
-};
+status.textContent =
+"● " + text;
+
+}
 
 
-photo.onchange =
-function(){
+/* =================================================
+   CAMERA
+================================================= */
+
+async function startCamera(){
+
+setStatus(
+"Đang mở camera..."
+);
+
 
 if(
-photo.files &&
-photo.files.length
+!navigator.mediaDevices ||
+!navigator.mediaDevices.getUserMedia
 ){
 
-result.textContent =
-"③ PHOTO INPUT OK: " +
-photo.files[0].name;
+throw new Error(
+"Camera API không được hỗ trợ"
+);
+
+}
+
+
+stream =
+await navigator
+.mediaDevices
+.getUserMedia({
+
+audio:false,
+
+video:{
+
+facingMode:{
+ideal:"user"
+},
+
+width:{
+ideal:1280
+},
+
+height:{
+ideal:720
+},
+
+frameRate:{
+ideal:30,
+max:30
+}
+
+}
+
+});
+
+
+video.srcObject =
+stream;
+
+
+await video.play();
+
+
+await new Promise(resolve => {
+
+if(
+video.videoWidth &&
+video.videoHeight
+){
+
+resolve();
 
 }else{
 
-result.textContent =
-"③ Không có ảnh";
+video.onloadedmetadata =
+resolve;
+
+}
+
+});
+
+
+canvas.width =
+video.videoWidth;
+
+canvas.height =
+video.videoHeight;
+
+
+resolution.textContent =
+video.videoWidth +
+" × " +
+video.videoHeight;
+
+
+setStatus(
+"CAMERA OK"
+);
+
+}
+
+
+/* =================================================
+   LOAD MEDIAPIPE
+================================================= */
+
+async function loadMediaPipe(){
+
+setStatus(
+"Đang tải MediaPipe..."
+);
+
+
+/*
+Không dùng import module nữa.
+
+Dùng script CDN trực tiếp để tránh
+lỗi module làm chết toàn bộ JavaScript.
+*/
+
+
+await new Promise(
+(resolve,reject)=>{
+
+const script =
+document.createElement("script");
+
+script.src =
+"https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/wasm/vision_bundle.js";
+
+script.onload =
+resolve;
+
+script.onerror =
+()=>reject(
+new Error(
+"Không tải được MediaPipe"
+)
+);
+
+document.head.appendChild(
+script
+);
+
+});
+
+
+setStatus(
+"MediaPipe JavaScript OK"
+);
+
+}
+
+
+/* =================================================
+   NOTE
+================================================= */
+
+function showMesh(){
+
+ctx.clearRect(
+0,
+0,
+canvas.width,
+canvas.height
+);
+
+
+/*
+Test overlay.
+
+Hiển thị các điểm giả để xác nhận
+canvas hoạt động trước khi đưa AI vào.
+*/
+
+ctx.fillStyle =
+"#34c759";
+
+
+const cx =
+canvas.width/2;
+
+const cy =
+canvas.height/2;
+
+const r =
+Math.min(
+canvas.width,
+canvas.height
+)*.18;
+
+
+for(
+let i=0;
+i<40;
+i++
+){
+
+const a =
+(i/40)*
+Math.PI*2;
+
+const x =
+cx+
+Math.cos(a)*r;
+
+const y =
+cy+
+Math.sin(a)*r*1.25;
+
+
+ctx.beginPath();
+
+ctx.arc(
+x,
+y,
+3,
+0,
+Math.PI*2
+);
+
+ctx.fill();
+
+}
+
+}
+
+
+/* =================================================
+   START
+================================================= */
+
+start.onclick =
+async function(){
+
+start.disabled =
+true;
+
+
+try{
+
+await startCamera();
+
+
+await loadMediaPipe();
+
+
+/*
+Camera + JavaScript + Canvas
+đã hoạt động.
+*/
+
+running =
+true;
+
+message.innerHTML =
+
+"<b class='green'>" +
+"CAMERA + JAVASCRIPT OK" +
+"</b><br>" +
+
+"Đang chuẩn bị Face Mesh";
+
+
+message.style.display =
+"block";
+
+
+setStatus(
+"CAMERA OK • MEDIAPIPE OK"
+);
+
+
+requestAnimationFrame(
+processFrame
+);
+
+}
+
+catch(error){
+
+console.error(
+error
+);
+
+
+setStatus(
+"LỖI: " +
+error.name
+);
+
+
+message.innerHTML =
+
+"<b class='red'>" +
+"FACELIVE ERROR" +
+"</b><br><br>" +
+
+error.message;
+
+
+message.style.display =
+"block";
+
+
+start.disabled =
+false;
 
 }
 
 };
+
+
+/* =================================================
+   FRAME LOOP
+================================================= */
+
+function processFrame(now){
+
+if(!running){
+
+return;
+
+}
+
+
+cameraFrames++;
+
+
+if(
+now-fpsTime>=1000
+){
+
+cameraFPS.textContent =
+cameraFrames;
+
+aiFPS.textContent =
+aiFrames;
+
+cameraFrames=0;
+
+aiFrames=0;
+
+fpsTime=now;
+
+}
+
+
+/*
+Hiện overlay test.
+*/
+
+showMesh();
+
+
+requestAnimationFrame(
+processFrame
+);
+
+}
 
 </script>
 
