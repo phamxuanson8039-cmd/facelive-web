@@ -11,7 +11,7 @@ initial-scale=1,
 maximum-scale=1,
 viewport-fit=cover">
 
-<title>FaceLive 0.7</title>
+<title>FaceLive 0.8</title>
 
 <style>
 
@@ -30,8 +30,7 @@ color:#fff;
 font-family:-apple-system,
 BlinkMacSystemFont,
 "Helvetica Neue",
-Arial,
-sans-serif;
+Arial,sans-serif;
 }
 
 #app{
@@ -43,98 +42,152 @@ background:#000;
 #video{
 position:absolute;
 inset:0;
+
 width:100%;
 height:100%;
+
 object-fit:cover;
+
 transform:scaleX(-1);
+
 background:#000;
 }
 
 #canvas{
 position:absolute;
 inset:0;
+
 width:100%;
 height:100%;
+
 pointer-events:none;
 }
 
 .panel{
 background:rgba(0,0,0,.65);
+
 backdrop-filter:blur(14px);
 -webkit-backdrop-filter:blur(14px);
+
 border-radius:15px;
 }
 
 #top{
 position:absolute;
+
 top:max(15px,env(safe-area-inset-top));
+
 left:12px;
 right:12px;
+
 display:flex;
+
 justify-content:space-between;
+
 align-items:flex-start;
-z-index:10;
+
+z-index:20;
 }
 
 #title{
 padding:12px 14px;
+
 font-size:19px;
+
 font-weight:700;
 }
 
 #stats{
 padding:11px 13px;
+
 font-size:12px;
+
 line-height:1.6;
+
 text-align:right;
+
 font-variant-numeric:tabular-nums;
 }
 
 #bottom{
 position:absolute;
+
 left:12px;
 right:12px;
+
 bottom:max(15px,env(safe-area-inset-bottom));
-z-index:10;
+
+z-index:20;
 }
 
 #status{
 display:inline-block;
+
 padding:10px 13px;
+
 margin-bottom:10px;
+
 font-size:13px;
 }
 
-#start{
+button,
+label{
+
+display:block;
+
 width:100%;
-padding:17px;
+
+padding:16px;
+
 border:0;
-border-radius:17px;
+
+border-radius:16px;
+
 background:rgba(255,255,255,.18);
+
 color:#fff;
-font-size:17px;
+
+font-size:16px;
+
 font-weight:700;
+
+text-align:center;
+
+margin-top:8px;
+}
+
+input{
+display:none;
 }
 
 #message{
+
 position:absolute;
+
 left:20px;
 right:20px;
+
 top:50%;
+
 transform:translateY(-50%);
+
 text-align:center;
+
 font-size:15px;
+
 line-height:1.6;
-z-index:5;
+
+z-index:10;
+
 pointer-events:none;
 }
 
-.error{
-color:#ff453a;
+.green{
+color:#34c759;
 }
 
-.ok{
-color:#34c759;
+.red{
+color:#ff453a;
 }
 
 </style>
@@ -146,6 +199,7 @@ color:#34c759;
 
 <div id="app">
 
+
 <video
 id="video"
 autoplay
@@ -153,17 +207,18 @@ playsinline
 muted>
 </video>
 
+
 <canvas id="canvas"></canvas>
 
 
 <div id="message">
 
-<b>FaceLive 0.7</b>
+<b>FaceLive 0.8</b>
 
 <br>
 
-<span style="opacity:.65">
-Realtime AI Face Tracking
+<span style="opacity:.7">
+Face Overlay Test
 </span>
 
 </div>
@@ -172,7 +227,7 @@ Realtime AI Face Tracking
 <div id="top">
 
 <div id="title" class="panel">
-FaceLive 0.7
+FaceLive 0.8
 </div>
 
 
@@ -198,8 +253,8 @@ Faces:
 
 <br>
 
-Resolution:
-<b id="resolution">--</b>
+Mode:
+<b id="mode">Tracking</b>
 
 </div>
 
@@ -208,13 +263,31 @@ Resolution:
 
 <div id="bottom">
 
+
 <div id="status" class="panel">
+
 ● Chưa khởi động
+
 </div>
+
 
 <button id="start">
 START FACELIVE
 </button>
+
+
+<label for="photo">
+
+📷 CHỌN ẢNH KHUÔN MẶT
+
+</label>
+
+
+<input
+id="photo"
+type="file"
+accept="image/*">
+
 
 </div>
 
@@ -223,13 +296,12 @@ START FACELIVE
 
 <script type="module">
 
-/*
-================================================
-FACELIVE 0.7
-MediaPipe Tasks Vision 1.0.1
-================================================
-*/
 
+/*
+==================================================
+MEDIAPIPE
+==================================================
+*/
 
 import {
 FaceLandmarker,
@@ -240,7 +312,9 @@ from
 
 
 /*
+==================================================
 ELEMENTS
+==================================================
 */
 
 const video =
@@ -261,6 +335,9 @@ document.getElementById("status");
 const message =
 document.getElementById("message");
 
+const photo =
+document.getElementById("photo");
+
 const cameraFPS =
 document.getElementById("cameraFPS");
 
@@ -273,21 +350,25 @@ document.getElementById("latency");
 const faces =
 document.getElementById("faces");
 
-const resolution =
-document.getElementById("resolution");
+const mode =
+document.getElementById("mode");
 
 
 /*
+==================================================
 STATE
+==================================================
 */
 
 let stream = null;
 
-let faceLandmarker = null;
+let landmarker = null;
 
 let running = false;
 
 let lastVideoTime = -1;
+
+let sourceImage = null;
 
 let cameraFrames = 0;
 
@@ -298,7 +379,9 @@ performance.now();
 
 
 /*
+==================================================
 STATUS
+==================================================
 */
 
 function setStatus(text){
@@ -310,7 +393,65 @@ status.textContent =
 
 
 /*
+==================================================
+LOAD AI
+==================================================
+*/
+
+async function loadAI(){
+
+setStatus(
+"Đang tải AI..."
+);
+
+
+const vision =
+await FilesetResolver
+.forVisionTasks(
+
+"https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.0.1/wasm"
+
+);
+
+
+landmarker =
+await FaceLandmarker
+.createFromModelPath(
+
+vision,
+
+"https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task"
+
+);
+
+
+await landmarker
+.setOptions({
+
+runningMode:"VIDEO",
+
+numFaces:1,
+
+minFaceDetectionConfidence:.5,
+
+minFacePresenceConfidence:.5,
+
+minTrackingConfidence:.5
+
+});
+
+
+setStatus(
+"AI Face Tracking OK"
+);
+
+}
+
+
+/*
+==================================================
 CAMERA
+==================================================
 */
 
 async function startCamera(){
@@ -364,12 +505,6 @@ canvas.height =
 video.videoHeight;
 
 
-resolution.textContent =
-video.videoWidth +
-" × " +
-video.videoHeight;
-
-
 setStatus(
 "Camera OK"
 );
@@ -378,73 +513,254 @@ setStatus(
 
 
 /*
-MEDIAPIPE
+==================================================
+PHOTO
+==================================================
 */
 
-async function loadAI(){
+photo.onchange =
+function(event){
+
+const file =
+event.target.files[0];
+
+
+if(!file){
+
+return;
+
+}
+
+
+const url =
+URL.createObjectURL(file);
+
+
+const img =
+new Image();
+
+
+img.onload =
+function(){
+
+sourceImage =
+img;
+
+mode.textContent =
+"Overlay";
 
 setStatus(
-"Đang tải MediaPipe 1.0.1..."
+"Ảnh nguồn đã sẵn sàng"
 );
 
+message.innerHTML =
 
-const vision =
-await FilesetResolver
-.forVisionTasks(
+"<b class='green'>" +
+"ẢNH ĐÃ TẢI" +
+"</b><br>" +
 
-"https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.0.1/wasm"
+"Đưa khuôn mặt vào camera";
 
-);
 
+message.style.display =
+"block";
+
+};
+
+
+img.onerror =
+function(){
 
 setStatus(
-"MediaPipe OK — tải model..."
+"Không đọc được ảnh"
 );
 
+};
 
-faceLandmarker =
-await FaceLandmarker
-.createFromModelPath(
 
-vision,
+img.src =
+url;
 
-"https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task"
+};
 
+
+/*
+==================================================
+DRAW OVERLAY
+==================================================
+*/
+
+function drawOverlay(landmarks){
+
+if(!sourceImage){
+
+return;
+
+}
+
+
+/*
+Find face bounds
+*/
+
+let minX=1;
+
+let minY=1;
+
+let maxX=0;
+
+let maxY=0;
+
+
+for(
+const p of landmarks
+){
+
+minX =
+Math.min(
+minX,
+p.x
 );
 
+minY =
+Math.min(
+minY,
+p.y
+);
 
-await faceLandmarker
-.setOptions({
+maxX =
+Math.max(
+maxX,
+p.x
+);
 
-runningMode:"VIDEO",
-
-numFaces:1,
-
-minFaceDetectionConfidence:0.5,
-
-minFacePresenceConfidence:0.5,
-
-minTrackingConfidence:0.5,
-
-outputFaceBlendshapes:true,
-
-outputFacialTransformationMatrixes:true
-
-});
-
-
-setStatus(
-"AI Face Landmarker OK"
+maxY =
+Math.max(
+maxY,
+p.y
 );
 
 }
 
 
 /*
-DRAW
+Mirror coordinates
 */
 
-function drawFace(result){
+const left =
+(1-maxX) *
+canvas.width;
+
+const top =
+minY *
+canvas.height;
+
+const width =
+(maxX-minX) *
+canvas.width;
+
+const height =
+(maxY-minY) *
+canvas.height;
+
+
+/*
+Add small margin
+*/
+
+const marginX =
+width * .10;
+
+const marginY =
+height * .08;
+
+
+const x =
+left-marginX;
+
+const y =
+top-marginY;
+
+const w =
+width+marginX*2;
+
+const h =
+height+marginY*2;
+
+
+/*
+Clip into oval
+*/
+
+ctx.save();
+
+
+ctx.beginPath();
+
+ctx.ellipse(
+
+x+w/2,
+
+y+h/2,
+
+w/2,
+
+h/2,
+
+0,
+
+0,
+
+Math.PI*2
+
+);
+
+ctx.clip();
+
+
+/*
+Draw source image
+
+Mirror source image so
+it behaves naturally with
+the mirrored camera.
+*/
+
+ctx.translate(
+x+w,
+y
+);
+
+ctx.scale(
+-1,
+1
+);
+
+
+ctx.drawImage(
+
+sourceImage,
+
+0,
+0,
+w,
+h
+
+);
+
+
+ctx.restore();
+
+}
+
+
+/*
+==================================================
+DRAW TRACKING
+==================================================
+*/
+
+function drawTracking(result){
 
 ctx.clearRect(
 0,
@@ -475,23 +791,36 @@ return;
 }
 
 
+const landmarks =
+detected[0];
+
+
+if(sourceImage){
+
+drawOverlay(
+landmarks
+);
+
+setStatus(
+"FACE OVERLAY OK"
+);
+
+}else{
+
 setStatus(
 "FACE TRACKING OK"
 );
 
 
-for(
-const landmarks of detected
-){
-
+/*
+Draw green points
+only when no source
+image is selected.
+*/
 
 ctx.fillStyle =
 "#34c759";
 
-
-/*
-LANDMARKS
-*/
 
 for(
 let i=0;
@@ -526,97 +855,23 @@ ctx.fill();
 
 }
 
-
-/*
-BOUNDING BOX
-*/
-
-let minX=1;
-let minY=1;
-
-let maxX=0;
-let maxY=0;
-
-
-for(
-const p of landmarks
-){
-
-minX =
-Math.min(minX,p.x);
-
-minY =
-Math.min(minY,p.y);
-
-maxX =
-Math.max(maxX,p.x);
-
-maxY =
-Math.max(maxY,p.y);
-
-}
-
-
-const left =
-(1-maxX) *
-canvas.width;
-
-const top =
-minY *
-canvas.height;
-
-const width =
-(maxX-minX) *
-canvas.width;
-
-const height =
-(maxY-minY) *
-canvas.height;
-
-
-ctx.strokeStyle =
-"#34c759";
-
-ctx.lineWidth=3;
-
-
-ctx.beginPath();
-
-ctx.ellipse(
-
-left+width/2,
-
-top+height/2,
-
-Math.abs(width)/2,
-
-height/2,
-
-0,
-
-0,
-
-Math.PI*2
-
-);
-
-ctx.stroke();
-
 }
 
 }
 
 
 /*
+==================================================
 REALTIME LOOP
+==================================================
 */
 
 function processFrame(now){
 
 if(
 !running ||
-!faceLandmarker ||
-video.readyState < 2
+!landmarker ||
+video.readyState<2
 ){
 
 requestAnimationFrame(
@@ -632,7 +887,7 @@ cameraFrames++;
 
 
 if(
-now-fpsStart >= 1000
+now-fpsStart>=1000
 ){
 
 cameraFPS.textContent =
@@ -666,7 +921,7 @@ performance.now();
 try{
 
 const result =
-faceLandmarker
+landmarker
 .detectForVideo(
 video,
 now
@@ -679,7 +934,7 @@ performance.now()-t
 ).toFixed(1);
 
 
-drawFace(
+drawTracking(
 result
 );
 
@@ -695,20 +950,6 @@ setStatus(
 "AI ERROR"
 );
 
-message.innerHTML =
-
-"<b class='error'>" +
-"AI ERROR" +
-"</b><br><br>" +
-
-error.name +
-"<br>" +
-
-error.message;
-
-message.style.display =
-"block";
-
 }
 
 }
@@ -722,7 +963,9 @@ processFrame
 
 
 /*
+==================================================
 START
+==================================================
 */
 
 start.onclick =
@@ -740,8 +983,10 @@ await loadAI();
 
 running=true;
 
+
 start.style.display =
 "none";
+
 
 message.style.display =
 "none";
@@ -765,7 +1010,7 @@ error.name
 
 message.innerHTML =
 
-"<b class='error'>" +
+"<b class='red'>" +
 "FACELIVE ERROR" +
 "</b><br><br>" +
 
