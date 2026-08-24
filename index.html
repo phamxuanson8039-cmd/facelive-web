@@ -5,12 +5,10 @@
 <meta charset="utf-8">
 
 <meta name="viewport"
-content="width=device-width,
-initial-scale=1,
-maximum-scale=1,
-viewport-fit=cover">
+content="width=device-width,initial-scale=1,
+maximum-scale=1,viewport-fit=cover">
 
-<title>FaceLive 2.1</title>
+<title>FaceLive CAMERA OK</title>
 
 <style>
 
@@ -29,14 +27,8 @@ color:#fff;
 font-family:Arial,sans-serif;
 }
 
-#app{
-position:fixed;
-inset:0;
-background:#000;
-}
-
 #video{
-position:absolute;
+position:fixed;
 inset:0;
 width:100%;
 height:100%;
@@ -45,60 +37,25 @@ transform:scaleX(-1);
 background:#000;
 }
 
-#canvas{
-position:absolute;
-inset:0;
-width:100%;
-height:100%;
-pointer-events:none;
-}
-
-.panel{
-background:rgba(0,0,0,.65);
-border-radius:15px;
-padding:12px;
-}
-
-#top{
-position:absolute;
-top:15px;
-left:12px;
-right:12px;
-display:flex;
-justify-content:space-between;
-align-items:flex-start;
+#ui{
+position:fixed;
+left:15px;
+right:15px;
+bottom:20px;
 z-index:10;
 }
 
-#title{
-font-size:19px;
-font-weight:bold;
-}
-
-#stats{
-font-size:12px;
-line-height:1.7;
-text-align:right;
-}
-
-#bottom{
-position:absolute;
-left:12px;
-right:12px;
-bottom:15px;
-z-index:20;
-}
-
 #status{
-display:inline-block;
-font-size:14px;
+background:rgba(0,0,0,.7);
+border-radius:15px;
+padding:14px;
+margin-bottom:10px;
+font-size:15px;
 }
 
 button{
-display:block;
 width:100%;
-padding:17px;
-margin-top:8px;
+padding:18px;
 border:0;
 border-radius:16px;
 background:#333;
@@ -107,20 +64,17 @@ font-size:17px;
 font-weight:bold;
 }
 
-button:disabled{
-opacity:.5;
-}
-
-#message{
-position:absolute;
-top:50%;
-left:20px;
-right:20px;
-transform:translateY(-50%);
-text-align:center;
-font-size:16px;
+#info{
+position:fixed;
+top:15px;
+left:15px;
+right:15px;
+z-index:10;
+background:rgba(0,0,0,.65);
+border-radius:15px;
+padding:12px;
+font-size:13px;
 line-height:1.6;
-z-index:5;
 }
 
 .green{
@@ -137,8 +91,6 @@ color:#ff453a;
 
 <body>
 
-<div id="app">
-
 <video
 id="video"
 autoplay
@@ -146,102 +98,35 @@ playsinline
 muted>
 </video>
 
-<canvas id="canvas"></canvas>
+<div id="info">
 
-
-<div id="message">
-
-<b>FaceLive 2.1</b>
-
-<br>
-
-<span style="opacity:.7">
-Camera + Face Mesh
-</span>
-
-</div>
-
-
-<div id="top">
-
-<div id="title" class="panel">
-FaceLive 2.1
-</div>
-
-<div id="stats" class="panel">
-
-Camera:
-<b id="cameraFPS">--</b>
-FPS
-
-<br>
-
-AI:
-<b id="aiFPS">--</b>
-FPS
-
-<br>
-
-Inference:
-<b id="latency">--</b>
-ms
-
-<br>
-
-Faces:
-<b id="faces">0</b>
+<b>FaceLive CAMERA TEST</b>
 
 <br>
 
 Resolution:
-<b id="resolution">--</b>
+<span id="resolution">--</span>
 
 </div>
 
-</div>
 
+<div id="ui">
 
-<div id="bottom">
-
-<div id="status" class="panel">
-● Chưa khởi động
+<div id="status">
+● Camera chưa khởi động
 </div>
 
 <button id="start">
-START FACELIVE
+START CAMERA
 </button>
 
 </div>
 
-</div>
 
-
-<script type="module">
-
-/* ==========================================
-   MEDIAPIPE IMPORT
-========================================== */
-
-import {
-    FaceLandmarker,
-    FilesetResolver
-}
-from
-"https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/+esm";
-
-
-/* ==========================================
-   ELEMENTS
-========================================== */
+<script>
 
 const video =
 document.getElementById("video");
-
-const canvas =
-document.getElementById("canvas");
-
-const ctx =
-canvas.getContext("2d");
 
 const start =
 document.getElementById("start");
@@ -249,48 +134,9 @@ document.getElementById("start");
 const status =
 document.getElementById("status");
 
-const message =
-document.getElementById("message");
-
-const cameraFPSElement =
-document.getElementById("cameraFPS");
-
-const aiFPSElement =
-document.getElementById("aiFPS");
-
-const latencyElement =
-document.getElementById("latency");
-
-const facesElement =
-document.getElementById("faces");
-
-const resolutionElement =
+const resolution =
 document.getElementById("resolution");
 
-
-/* ==========================================
-   STATE
-========================================== */
-
-let stream = null;
-
-let landmarker = null;
-
-let running = false;
-
-let lastVideoTime = -1;
-
-let cameraFrames = 0;
-
-let aiFrames = 0;
-
-let fpsStart =
-performance.now();
-
-
-/* ==========================================
-   STATUS
-========================================== */
 
 function setStatus(text){
 
@@ -300,16 +146,16 @@ status.textContent =
 }
 
 
-/* ==========================================
-   CAMERA
-========================================== */
+start.onclick =
+async function(){
 
-async function startCamera(){
+start.disabled = true;
 
 setStatus(
-"Đang mở camera..."
+"Đang xin quyền camera..."
 );
 
+try{
 
 if(
 !navigator.mediaDevices ||
@@ -317,21 +163,18 @@ if(
 ){
 
 throw new Error(
-"Camera API không được hỗ trợ"
+"Trình duyệt không hỗ trợ Camera API"
 );
 
 }
 
 
-stream =
-await navigator
-.mediaDevices
-.getUserMedia({
+const stream =
+await navigator.mediaDevices.getUserMedia({
 
 audio:false,
 
 video:{
-
 facingMode:{
 ideal:"user"
 },
@@ -345,8 +188,7 @@ ideal:720
 },
 
 frameRate:{
-ideal:30,
-max:30
+ideal:30
 }
 
 }
@@ -380,14 +222,7 @@ resolve;
 });
 
 
-canvas.width =
-video.videoWidth;
-
-canvas.height =
-video.videoHeight;
-
-
-resolutionElement.textContent =
+resolution.textContent =
 video.videoWidth +
 " × " +
 video.videoHeight;
@@ -397,333 +232,20 @@ setStatus(
 "CAMERA OK"
 );
 
-}
 
-
-/* ==========================================
-   LOAD AI
-========================================== */
-
-async function loadAI(){
-
-setStatus(
-"Đang tải MediaPipe..."
+status.classList.add(
+"green"
 );
-
-
-const vision =
-await FilesetResolver.forVisionTasks(
-
-"https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/wasm"
-
-);
-
-
-setStatus(
-"Đang khởi tạo Face Mesh..."
-);
-
-
-landmarker =
-await FaceLandmarker.createFromOptions(
-
-vision,
-
-{
-
-baseOptions:{
-
-modelAssetPath:
-
-"https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task",
-
-delegate:"GPU"
-
-},
-
-runningMode:"VIDEO",
-
-numFaces:1,
-
-minFaceDetectionConfidence:.5,
-
-minFacePresenceConfidence:.5,
-
-minTrackingConfidence:.5,
-
-outputFaceBlendshapes:true,
-
-outputFacialTransformationMatrixes:true
-
-}
-
-);
-
-
-setStatus(
-"MEDIAPIPE OK"
-);
-
-}
-
-
-/* ==========================================
-   DRAW FACE MESH
-========================================== */
-
-function drawFaceMesh(
-result
-){
-
-ctx.clearRect(
-0,
-0,
-canvas.width,
-canvas.height
-);
-
-
-const detected =
-result.faceLandmarks || [];
-
-
-facesElement.textContent =
-detected.length;
-
-
-if(
-detected.length === 0
-){
-
-setStatus(
-"Đang tìm khuôn mặt..."
-);
-
-return;
-
-}
-
-
-const landmarks =
-detected[0];
-
-
-ctx.fillStyle =
-"#34c759";
-
-
-/*
-Các điểm xanh của khuôn mặt.
-*/
-
-for(
-let i=0;
-i<landmarks.length;
-i+=4
-){
-
-const p =
-landmarks[i];
-
-
-const x =
-(1-p.x) *
-canvas.width;
-
-
-const y =
-p.y *
-canvas.height;
-
-
-ctx.beginPath();
-
-ctx.arc(
-x,
-y,
-1.7,
-0,
-Math.PI*2
-);
-
-ctx.fill();
-
-}
-
-
-setStatus(
-"FACE MESH OK"
-);
-
-}
-
-
-/* ==========================================
-   PROCESS FRAME
-========================================== */
-
-function processFrame(now){
-
-if(
-!running ||
-!landmarker ||
-video.readyState < 2
-){
-
-requestAnimationFrame(
-processFrame
-);
-
-return;
-
-}
-
-
-cameraFrames++;
-
-
-if(
-now-fpsStart >= 1000
-){
-
-cameraFPSElement.textContent =
-cameraFrames;
-
-aiFPSElement.textContent =
-aiFrames;
-
-cameraFrames=0;
-
-aiFrames=0;
-
-fpsStart=now;
-
-}
-
-
-/*
-Chỉ xử lý frame camera mới.
-*/
-
-if(
-video.currentTime !==
-lastVideoTime
-){
-
-lastVideoTime =
-video.currentTime;
-
-
-const t =
-performance.now();
-
-
-try{
-
-const result =
-landmarker.detectForVideo(
-video,
-now
-);
-
-
-latencyElement.textContent =
-(
-performance.now()-t
-).toFixed(1);
-
-
-drawFaceMesh(
-result
-);
-
-
-aiFrames++;
-
-}catch(error){
-
-console.error(
-"Face Mesh:",
-error
-);
-
-setStatus(
-"FACE MESH ERROR"
-);
-
-}
-
-}
-
-
-requestAnimationFrame(
-processFrame
-);
-
-}
-
-
-/* ==========================================
-   START
-========================================== */
-
-start.onclick =
-async function(){
-
-start.disabled =
-true;
-
-
-try{
-
-/*
-1. Camera
-*/
-
-await startCamera();
-
-
-/*
-2. MediaPipe
-*/
-
-await loadAI();
-
-
-/*
-3. Start tracking
-*/
-
-running =
-true;
-
-
-message.innerHTML =
-
-"<b class='green'>" +
-"FACE MESH READY" +
-"</b><br>" +
-
-"Đưa khuôn mặt vào camera";
-
-
-message.style.display =
-"none";
 
 
 start.style.display =
 "none";
 
 
-requestAnimationFrame(
-processFrame
-);
-
-
 }catch(error){
 
 console.error(
-"FaceLive ERROR:",
+"Camera error:",
 error
 );
 
@@ -734,21 +256,9 @@ error.name
 );
 
 
-message.innerHTML =
-
-"<b class='red'>" +
-"FACELIVE ERROR" +
-"</b><br><br>" +
-
-error.name +
-
-"<br>" +
-
-error.message;
-
-
-message.style.display =
-"block";
+status.classList.add(
+"red"
+);
 
 
 start.disabled =
