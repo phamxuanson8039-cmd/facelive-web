@@ -1,6 +1,7 @@
 ```html
 <!doctype html>
 <html lang="vi">
+
 <head>
 
 <meta charset="utf-8">
@@ -9,7 +10,7 @@
 content="width=device-width,initial-scale=1,
 maximum-scale=1,viewport-fit=cover">
 
-<title>FaceLive 2.4</title>
+<title>FaceLive 2.5</title>
 
 <style>
 
@@ -52,6 +53,7 @@ top:15px;
 left:12px;
 right:12px;
 z-index:10;
+
 display:flex;
 justify-content:space-between;
 align-items:flex-start
@@ -122,7 +124,7 @@ display:none;
 position:fixed;
 
 right:12px;
-bottom:210px;
+bottom:205px;
 
 width:110px;
 height:140px;
@@ -138,6 +140,7 @@ z-index:25
 
 #message{
 position:fixed;
+
 top:50%;
 left:20px;
 right:20px;
@@ -145,6 +148,7 @@ right:20px;
 transform:translateY(-50%);
 
 text-align:center;
+
 font-size:16px;
 line-height:1.6;
 
@@ -171,12 +175,18 @@ width:100%
 color:#34c759
 }
 
+.yellow{
+color:#ffcc00
+}
+
 .red{
 color:#ff453a
 }
 
 </style>
+
 </head>
+
 
 <body>
 
@@ -189,7 +199,9 @@ muted>
 </video>
 
 
-<canvas id="canvas"></canvas>
+<canvas
+id="canvas">
+</canvas>
 
 
 <img
@@ -200,13 +212,13 @@ alt="Ảnh mẫu">
 <div id="message">
 
 <b>
-FaceLive 2.4
+FaceLive 2.5
 </b>
 
 <br>
 
 <span style="opacity:.7">
-Face Alignment
+Camera + Photo Face Alignment
 </span>
 
 </div>
@@ -214,11 +226,12 @@ Face Alignment
 
 <div id="top">
 
+
 <div
 id="title"
 class="panel">
 
-FaceLive 2.4
+FaceLive 2.5
 
 </div>
 
@@ -262,10 +275,12 @@ Mode:
 
 </div>
 
+
 </div>
 
 
 <div id="bottom">
+
 
 <div
 id="status"
@@ -313,12 +328,30 @@ value="65">
 
 
 /* =========================================
-   MEDIAPIPE
+   MEDIAPIPE MODULE
 ========================================= */
 
 let FaceLandmarker = null;
 
 let FilesetResolver = null;
+
+
+/* =========================================
+   LANDMARKERS
+========================================= */
+
+/*
+Camera dùng VIDEO.
+*/
+
+let cameraLandmarker = null;
+
+
+/*
+Ảnh mẫu dùng IMAGE.
+*/
+
+let imageLandmarker = null;
 
 
 /* =========================================
@@ -383,8 +416,6 @@ document.getElementById("blend");
 
 let stream = null;
 
-let landmarker = null;
-
 let running = false;
 
 let lastVideoTime = -1;
@@ -398,14 +429,14 @@ performance.now();
 
 
 /*
-ẢNH MẪU
+Ảnh mẫu.
 */
 
 let sourceImage = null;
 
 
 /*
-Landmark của ảnh mẫu.
+Landmark ảnh mẫu.
 */
 
 let sourceLandmarks = null;
@@ -424,261 +455,190 @@ status.textContent =
 
 
 /* =========================================
-   PHOTO
+   LOAD MEDIAPIPE
 ========================================= */
 
-photoInput.addEventListener(
-"change",
-async function(event){
-
-const file =
-event.target.files &&
-event.target.files[0];
-
-
-if(!file){
-return;
-}
-
-
-if(
-!file.type.startsWith("image/")
-){
+async function loadMediaPipe(){
 
 setStatus(
-"File không phải ảnh"
-);
-
-return;
-
-}
-
-
-/*
-Đọc ảnh.
-*/
-
-const reader =
-new FileReader();
-
-
-reader.onload =
-async function(e){
-
-const img =
-new Image();
-
-
-img.onload =
-async function(){
-
-sourceImage =
-img;
-
-
-/*
-Hiện preview.
-*/
-
-photoPreview.src =
-e.target.result;
-
-photoPreview.style.display =
-"block";
-
-
-photoState.textContent =
-"ON";
-
-
-setStatus(
-"Đang nhận diện ảnh mẫu..."
-);
-
-
-/*
-Nếu AI đã sẵn sàng,
-nhận diện ngay.
-*/
-
-if(landmarker){
-
-await detectSourceFace();
-
-}else{
-
-setStatus(
-"Ảnh đã tải - hãy START"
-);
-
-}
-
-
-};
-
-
-/*
-Lỗi ảnh.
-*/
-
-img.onerror =
-function(){
-
-setStatus(
-"LỖI ĐỌC ẢNH"
-);
-
-};
-
-
-img.src =
-e.target.result;
-
-};
-
-
-reader.onerror =
-function(){
-
-setStatus(
-"LỖI ĐỌC FILE"
-);
-
-};
-
-
-reader.readAsDataURL(file);
-
-}
-);
-
-
-/* =========================================
-   SOURCE FACE
-========================================= */
-
-async function detectSourceFace(){
-
-if(
-!sourceImage ||
-!landmarker
-){
-
-return;
-
-}
-
-
-/*
-Canvas tạm để MediaPipe đọc ảnh.
-*/
-
-const temp =
-document.createElement("canvas");
-
-
-temp.width =
-sourceImage.naturalWidth;
-
-temp.height =
-sourceImage.naturalHeight;
-
-
-const tc =
-temp.getContext("2d");
-
-
-tc.drawImage(
-sourceImage,
-0,
-0
+"Đang tải MediaPipe..."
 );
 
 
 try{
 
-const result =
-landmarker.detect(temp);
+const module =
+await import(
+
+"https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.0.1/+esm"
+
+);
 
 
-const detected =
-result.faceLandmarks || [];
+FaceLandmarker =
+module.FaceLandmarker;
 
-
-photoFaces.textContent =
-detected.length;
+FilesetResolver =
+module.FilesetResolver;
 
 
 if(
-!detected.length
+!FaceLandmarker ||
+!FilesetResolver
 ){
 
-sourceLandmarks =
-null;
-
-setStatus(
-"Không tìm thấy mặt trong ảnh mẫu"
+throw new Error(
+"MediaPipe module không đầy đủ"
 );
-
-return;
 
 }
 
-
-sourceLandmarks =
-detected[0];
-
-
-blendBox.style.display =
-"block";
-
-
-mode.textContent =
-"Alignment";
-
-
-setStatus(
-"ẢNH MẪU FACE OK"
-);
-
-
-message.innerHTML =
-
-"<b class='green'>" +
-
-"ẢNH MẪU FACE OK" +
-
-"</b><br>" +
-
-"Đưa mặt vào camera";
-
-
-message.style.display =
-"block";
-
-
-setTimeout(
-function(){
-
-message.style.display =
-"none";
-
-},
-1800
-);
 
 }catch(error){
 
-console.error(
-"Source face:",
-error
-);
+throw new Error(
 
-setStatus(
-"LỖI NHẬN DIỆN ẢNH"
+"Không tải được MediaPipe: " +
+error.message
+
 );
 
 }
+
+
+setStatus(
+"MediaPipe JavaScript OK"
+);
+
+}
+
+
+/* =========================================
+   CREATE CAMERA LANDMARKER
+========================================= */
+
+async function createCameraLandmarker(){
+
+setStatus(
+"Đang khởi tạo Camera Face Mesh..."
+);
+
+
+const vision =
+await FilesetResolver.forVisionTasks(
+
+"https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.0.1/wasm"
+
+);
+
+
+cameraLandmarker =
+await FaceLandmarker.createFromOptions(
+
+vision,
+
+{
+
+baseOptions:{
+
+modelAssetPath:
+
+"https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task",
+
+delegate:"GPU"
+
+},
+
+runningMode:"VIDEO",
+
+numFaces:1,
+
+minFaceDetectionConfidence:.5,
+
+minFacePresenceConfidence:.5,
+
+minTrackingConfidence:.5,
+
+outputFaceBlendshapes:true,
+
+outputFacialTransformationMatrixes:true
+
+}
+
+);
+
+
+setStatus(
+"CAMERA FACEMESH OK"
+);
+
+}
+
+
+/* =========================================
+   CREATE IMAGE LANDMARKER
+========================================= */
+
+async function createImageLandmarker(){
+
+setStatus(
+"Đang khởi tạo Photo Face AI..."
+);
+
+
+const vision =
+await FilesetResolver.forVisionTasks(
+
+"https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.0.1/wasm"
+
+);
+
+
+imageLandmarker =
+await FaceLandmarker.createFromOptions(
+
+vision,
+
+{
+
+baseOptions:{
+
+modelAssetPath:
+
+"https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task",
+
+delegate:"GPU"
+
+},
+
+/*
+QUAN TRỌNG:
+
+Ảnh tĩnh phải dùng IMAGE.
+*/
+
+runningMode:"IMAGE",
+
+numFaces:1,
+
+minFaceDetectionConfidence:.4,
+
+minFacePresenceConfidence:.4,
+
+minTrackingConfidence:.4,
+
+outputFaceBlendshapes:true,
+
+outputFacialTransformationMatrixes:true
+
+}
+
+);
+
+
+setStatus(
+"PHOTO FACE AI OK"
+);
 
 }
 
@@ -694,13 +654,9 @@ setStatus(
 );
 
 
-const media =
-navigator.mediaDevices;
-
-
 if(
-!media ||
-!media.getUserMedia
+!navigator.mediaDevices ||
+!navigator.mediaDevices.getUserMedia
 ){
 
 throw new Error(
@@ -711,7 +667,7 @@ throw new Error(
 
 
 stream =
-await media.getUserMedia({
+await navigator.mediaDevices.getUserMedia({
 
 audio:false,
 
@@ -778,142 +734,14 @@ setStatus(
 
 
 /* =========================================
-   LOAD MEDIAPIPE
+   SOURCE POINT
 ========================================= */
-
-async function loadMediaPipe(){
-
-setStatus(
-"Đang tải MediaPipe..."
-);
-
-
-try{
-
-const module =
-await import(
-
-"https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.0.1/+esm"
-
-);
-
-
-FaceLandmarker =
-module.FaceLandmarker;
-
-FilesetResolver =
-module.FilesetResolver;
-
-
-if(
-!FaceLandmarker ||
-!FilesetResolver
-){
-
-throw new Error(
-"MediaPipe module không đầy đủ"
-);
-
-}
-
-}catch(error){
-
-throw new Error(
-
-"Không tải được MediaPipe: " +
-error.message
-
-);
-
-}
-
-
-setStatus(
-"MediaPipe JavaScript OK"
-);
-
-}
-
-
-/* =========================================
-   CREATE LANDMARKER
-========================================= */
-
-async function createFaceLandmarker(){
-
-setStatus(
-"Đang khởi tạo Face Mesh..."
-);
-
-
-const vision =
-await FilesetResolver.forVisionTasks(
-
-"https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.0.1/wasm"
-
-);
-
-
-landmarker =
-await FaceLandmarker.createFromOptions(
-
-vision,
-
-{
-
-baseOptions:{
-
-modelAssetPath:
-
-"https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task",
-
-delegate:"GPU"
-
-},
-
-runningMode:"VIDEO",
-
-numFaces:1,
-
-minFaceDetectionConfidence:.5,
-
-minFacePresenceConfidence:.5,
-
-minTrackingConfidence:.5,
-
-outputFaceBlendshapes:true,
-
-outputFacialTransformationMatrixes:true
-
-}
-
-);
-
-
-setStatus(
-"MEDIAPIPE OK"
-);
-
 
 /*
-Nếu ảnh đã được chọn
-trước khi START.
+Ảnh mẫu KHÔNG lật ngang.
 */
 
-if(sourceImage){
-
-await detectSourceFace();
-
-}
-
-}
-
-
-/* =========================================
-   POINT
-========================================= */
-
-function point(
+function sourcePoint(
 landmarks,
 index,
 width,
@@ -923,13 +751,12 @@ height
 const p =
 landmarks[index];
 
+
 return {
 
-x:
-(1-p.x)*width,
+x:p.x*width,
 
-y:
-p.y*height
+y:p.y*height
 
 };
 
@@ -937,10 +764,258 @@ p.y*height
 
 
 /* =========================================
-   DRAW ALIGNED PHOTO
+   CAMERA POINT
 ========================================= */
 
-function drawAlignedFace(
+/*
+Camera đang mirror nên
+phải lật X.
+*/
+
+function cameraPoint(
+landmarks,
+index
+){
+
+const p =
+landmarks[index];
+
+
+return {
+
+x:(1-p.x)*
+canvas.width,
+
+y:p.y*
+canvas.height
+
+};
+
+}
+
+
+/* =========================================
+   DETECT PHOTO FACE
+========================================= */
+
+async function detectPhotoFace(){
+
+if(
+!sourceImage ||
+!imageLandmarker
+){
+
+return;
+
+}
+
+
+setStatus(
+"Đang tìm mặt trong ảnh..."
+);
+
+
+try{
+
+
+const result =
+imageLandmarker.detect(
+sourceImage
+);
+
+
+const detected =
+result.faceLandmarks || [];
+
+
+photoFaces.textContent =
+detected.length;
+
+
+if(
+detected.length === 0
+){
+
+sourceLandmarks =
+null;
+
+
+setStatus(
+"KHÔNG THẤY MẶT TRONG ẢNH"
+);
+
+return;
+
+}
+
+
+sourceLandmarks =
+detected[0];
+
+
+blendBox.style.display =
+"block";
+
+
+mode.textContent =
+"Photo Ready";
+
+
+setStatus(
+"PHOTO FACE OK"
+);
+
+
+message.innerHTML =
+
+"<b class='green'>" +
+
+"PHOTO FACE OK" +
+
+"</b><br>" +
+
+"Đã nhận diện khuôn mặt ảnh";
+
+
+message.style.display =
+"block";
+
+
+setTimeout(
+()=>{
+
+message.style.display =
+"none";
+
+},
+1600
+);
+
+
+}catch(error){
+
+console.error(
+"PHOTO AI ERROR:",
+error
+);
+
+
+sourceLandmarks =
+null;
+
+
+setStatus(
+"PHOTO AI ERROR"
+);
+
+}
+
+}
+
+
+/* =========================================
+   PHOTO INPUT
+========================================= */
+
+photoInput.addEventListener(
+"change",
+function(event){
+
+const file =
+event.target.files &&
+event.target.files[0];
+
+
+if(!file){
+
+return;
+
+}
+
+
+if(
+!file.type.startsWith("image/")
+){
+
+setStatus(
+"File không phải ảnh"
+);
+
+return;
+
+}
+
+
+const url =
+URL.createObjectURL(file);
+
+
+const img =
+new Image();
+
+
+img.onload =
+async function(){
+
+sourceImage =
+img;
+
+
+photoPreview.src =
+url;
+
+photoPreview.style.display =
+"block";
+
+
+photoState.textContent =
+"ON";
+
+
+/*
+Nếu Image AI đã sẵn sàng,
+nhận diện ngay.
+*/
+
+if(
+imageLandmarker
+){
+
+await detectPhotoFace();
+
+}else{
+
+setStatus(
+"ẢNH ĐÃ TẢI - CHỜ AI"
+);
+
+}
+
+};
+
+
+img.onerror =
+function(){
+
+setStatus(
+"LỖI ĐỌC ẢNH"
+);
+
+};
+
+
+img.src =
+url;
+
+}
+);
+
+
+/* =========================================
+   DRAW ALIGNMENT
+========================================= */
+
+function drawAlignment(
 cameraLandmarks
 ){
 
@@ -955,111 +1030,151 @@ return;
 
 
 /*
-Camera points.
+=========================================
+CAMERA LANDMARKS
+=========================================
 */
 
-const targetLeftEye =
-point(
+const cLeftEye =
+cameraPoint(
 cameraLandmarks,
-33,
-canvas.width,
-canvas.height
+33
+);
+
+const cRightEye =
+cameraPoint(
+cameraLandmarks,
+263
+);
+
+const cNose =
+cameraPoint(
+cameraLandmarks,
+1
+);
+
+const cLeftMouth =
+cameraPoint(
+cameraLandmarks,
+61
+);
+
+const cRightMouth =
+cameraPoint(
+cameraLandmarks,
+291
+);
+
+const cChin =
+cameraPoint(
+cameraLandmarks,
+152
 );
 
 
-const targetRightEye =
-point(
-cameraLandmarks,
-263,
-canvas.width,
-canvas.height
-);
+/*
+=========================================
+PHOTO LANDMARKS
+=========================================
+*/
 
-
-const targetNose =
-point(
-cameraLandmarks,
-1,
-canvas.width,
-canvas.height
-);
-
-
-const sourceW =
+const sw =
 sourceImage.naturalWidth;
 
-const sourceH =
+const sh =
 sourceImage.naturalHeight;
 
 
-/*
-Source points.
-*/
-
-const sourceLeftEye =
-point(
+const sLeftEye =
+sourcePoint(
 sourceLandmarks,
 33,
-sourceW,
-sourceH
+sw,
+sh
 );
 
-
-const sourceRightEye =
-point(
+const sRightEye =
+sourcePoint(
 sourceLandmarks,
 263,
-sourceW,
-sourceH
+sw,
+sh
 );
 
-
-const sourceNose =
-point(
+const sNose =
+sourcePoint(
 sourceLandmarks,
 1,
-sourceW,
-sourceH
+sw,
+sh
+);
+
+const sLeftMouth =
+sourcePoint(
+sourceLandmarks,
+61,
+sw,
+sh
+);
+
+const sRightMouth =
+sourcePoint(
+sourceLandmarks,
+291,
+sw,
+sh
+);
+
+const sChin =
+sourcePoint(
+sourceLandmarks,
+152,
+sw,
+sh
 );
 
 
 /*
-Tính scale theo khoảng cách mắt.
+=========================================
+EYE DISTANCE
+=========================================
 */
 
-const sx =
-sourceRightEye.x -
-sourceLeftEye.x;
+const sdx =
+sRightEye.x -
+sLeftEye.x;
 
-const sy =
-sourceRightEye.y -
-sourceLeftEye.y;
-
-const tx =
-targetRightEye.x -
-targetLeftEye.x;
-
-const ty =
-targetRightEye.y -
-targetLeftEye.y;
+const sdy =
+sRightEye.y -
+sLeftEye.y;
 
 
-const sourceEyeDistance =
-Math.sqrt(
-sx*sx+
-sy*sy
+const cdx =
+cRightEye.x -
+cLeftEye.x;
+
+const cdy =
+cRightEye.y -
+cLeftEye.y;
+
+
+const sourceDistance =
+Math.hypot(
+sdx,
+sdy
 );
 
 
-const targetEyeDistance =
-Math.sqrt(
-tx*tx+
-ty*ty
+const cameraDistance =
+Math.hypot(
+cdx,
+cdy
 );
 
 
 if(
-sourceEyeDistance < 1
+sourceDistance < 1 ||
+cameraDistance < 1
 ){
 
 return;
@@ -1067,142 +1182,124 @@ return;
 }
 
 
+/*
+=========================================
+SCALE
+=========================================
+*/
+
 const scale =
-targetEyeDistance /
-sourceEyeDistance;
+cameraDistance /
+sourceDistance;
 
 
 /*
-Góc quay.
+=========================================
+ROTATION
+=========================================
 */
 
 const sourceAngle =
 Math.atan2(
-sy,
-sx
+sdy,
+sdx
 );
 
-const targetAngle =
+
+const cameraAngle =
 Math.atan2(
-ty,
-tx
+cdy,
+cdx
 );
 
 
 const angle =
-targetAngle -
+cameraAngle -
 sourceAngle;
 
 
 /*
-Tâm mắt ảnh mẫu.
+=========================================
+CENTERS
+=========================================
 */
 
 const sourceCenterX =
 (
-sourceLeftEye.x+
-sourceRightEye.x
+sLeftEye.x+
+sRightEye.x
 )/2;
 
 
 const sourceCenterY =
 (
-sourceLeftEye.y+
-sourceRightEye.y
+sLeftEye.y+
+sRightEye.y
+)/2;
+
+
+const cameraCenterX =
+(
+cLeftEye.x+
+cRightEye.x
+)/2;
+
+
+const cameraCenterY =
+(
+cLeftEye.y+
+cRightEye.y
 )/2;
 
 
 /*
-Tâm mắt camera.
+=========================================
+TRANSFORM
+=========================================
 */
 
-const targetCenterX =
-(
-targetLeftEye.x+
-targetRightEye.x
-)/2;
+const cos =
+Math.cos(angle);
 
-
-const targetCenterY =
-(
-targetLeftEye.y+
-targetRightEye.y
-)/2;
+const sin =
+Math.sin(angle);
 
 
 /*
-Vị trí mũi để kiểm tra
-độ lệch.
+Source center -> camera center.
 */
 
-const sourceNoseRelativeX =
-sourceNose.x -
-sourceCenterX;
-
-const sourceNoseRelativeY =
-sourceNose.y -
-sourceCenterY;
-
-
-const targetNoseExpectedX =
-targetCenterX +
+const tx =
+cameraCenterX -
+scale*
 (
-sourceNoseRelativeX*
-scale*
-Math.cos(angle)
--
-sourceNoseRelativeY*
-scale*
-Math.sin(angle)
+cos*sourceCenterX -
+sin*sourceCenterY
 );
 
 
-const targetNoseExpectedY =
-targetCenterY +
+const ty =
+cameraCenterY -
+scale*
 (
-sourceNoseRelativeX*
-scale*
-Math.sin(angle)
-+
-sourceNoseRelativeY*
-scale*
-Math.cos(angle)
+sin*sourceCenterX +
+cos*sourceCenterY
 );
 
 
 /*
-Dịch ảnh.
+=========================================
+FACE CLIP
+=========================================
 */
 
-const translateX =
-targetCenterX -
-(
-sourceCenterX*
-scale*
-Math.cos(angle)
--
-sourceCenterY*
-scale*
-Math.sin(angle)
-);
+const faceWidth =
+cameraDistance*2.45;
 
 
-const translateY =
-targetCenterY -
-(
-sourceCenterX*
-scale*
-Math.sin(angle)
-+
-sourceCenterY*
-scale*
-Math.cos(angle)
-);
+const faceHeight =
+cameraDistance*3.15;
 
-
-/*
-Vẽ ảnh với độ trong suốt.
-*/
 
 ctx.save();
 
@@ -1211,26 +1308,15 @@ ctx.globalAlpha =
 Number(blend.value)/100;
 
 
-/*
-Clip hình oval quanh mặt.
-*/
-
-const faceWidth =
-targetEyeDistance*2.25;
-
-const faceHeight =
-targetEyeDistance*3.0;
-
-
 ctx.beginPath();
 
 
 ctx.ellipse(
 
-targetCenterX,
+cameraCenterX,
 
-targetCenterY +
-targetEyeDistance*.35,
+cameraCenterY+
+cameraDistance*.38,
 
 faceWidth/2,
 
@@ -1247,19 +1333,25 @@ Math.PI*2
 ctx.clip();
 
 
+/*
+=========================================
+DRAW SOURCE PHOTO
+=========================================
+*/
+
 ctx.setTransform(
 
-scale*Math.cos(angle),
+scale*cos,
 
-scale*Math.sin(angle),
+scale*sin,
 
--scale*Math.sin(angle),
+-scale*sin,
 
-scale*Math.cos(angle),
+scale*cos,
 
-translateX,
+tx,
 
-translateY
+ty
 
 );
 
@@ -1275,25 +1367,118 @@ ctx.restore();
 
 
 /*
-Điểm kiểm tra mũi.
+=========================================
+YELLOW NOSE
+=========================================
+*/
+
+/*
+Tính vị trí mũi ảnh mẫu
+sau transform.
+*/
+
+const dx =
+sNose.x -
+sourceCenterX;
+
+const dy =
+sNose.y -
+sourceCenterY;
+
+
+const transformedNoseX =
+
+cameraCenterX +
+
+scale*
+(
+dx*cos -
+dy*sin
+);
+
+
+const transformedNoseY =
+
+cameraCenterY +
+
+scale*
+(
+dx*sin +
+dy*cos
+);
+
+
+/*
+Vẽ vàng.
 */
 
 ctx.save();
 
+
+ctx.setTransform(
+1,0,0,1,0,0
+);
+
+
 ctx.fillStyle =
 "#ffcc00";
 
+
 ctx.beginPath();
 
+
 ctx.arc(
-targetNoseExpectedX,
-targetNoseExpectedY,
-4,
+
+transformedNoseX,
+
+transformedNoseY,
+
+5,
+
 0,
 Math.PI*2
+
 );
 
+
 ctx.fill();
+
+
+ctx.restore();
+
+
+/*
+=========================================
+CAMERA NOSE MARKER
+=========================================
+*/
+
+ctx.save();
+
+
+ctx.fillStyle =
+"#34c759";
+
+
+ctx.beginPath();
+
+
+ctx.arc(
+
+cNose.x,
+
+cNose.y,
+
+3,
+
+0,
+Math.PI*2
+
+);
+
+
+ctx.fill();
+
 
 ctx.restore();
 
@@ -1304,13 +1489,14 @@ ctx.restore();
    DRAW CAMERA MESH
 ========================================= */
 
-function drawMesh(
-result
+function drawCameraMesh(
+landmarks
 ){
 
 ctx.setTransform(
 1,0,0,1,0,0
 );
+
 
 ctx.clearRect(
 0,
@@ -1320,37 +1506,13 @@ canvas.height
 );
 
 
-const detected =
-result.faceLandmarks || [];
-
-
 faces.textContent =
-detected.length;
-
-
-if(
-!detected.length
-){
-
-setStatus(
-"Đang tìm khuôn mặt..."
-);
-
-return;
-
-}
-
-
-const landmarks =
-detected[0];
+"1";
 
 
 /*
-Nếu có ảnh mẫu,
-căn ảnh.
-
-Nếu chưa có,
-chỉ mesh.
+Nếu có ảnh + landmark ảnh,
+chuyển sang alignment.
 */
 
 if(
@@ -1358,21 +1520,28 @@ sourceImage &&
 sourceLandmarks
 ){
 
-drawAlignedFace(
+drawAlignment(
 landmarks
 );
 
+
 mode.textContent =
 "ALIGNMENT";
+
 
 setStatus(
 "FACE ALIGNMENT OK"
 );
 
-}else{
+
+return;
+
+}
+
 
 /*
-Mesh xanh.
+Nếu chưa có ảnh,
+vẽ mesh xanh.
 */
 
 ctx.fillStyle =
@@ -1392,12 +1561,12 @@ landmarks[i];
 
 
 const x =
-(1-p.x) *
+(1-p.x)*
 canvas.width;
 
 
 const y =
-p.y *
+p.y*
 canvas.height;
 
 
@@ -1421,11 +1590,10 @@ ctx.fill();
 mode.textContent =
 "Tracking";
 
+
 setStatus(
 "FACE MESH OK"
 );
-
-}
 
 }
 
@@ -1436,9 +1604,7 @@ setStatus(
 
 function processFrame(now){
 
-if(
-!running
-){
+if(!running){
 
 return;
 
@@ -1470,7 +1636,7 @@ fpsTime = now;
 
 if(
 
-landmarker &&
+cameraLandmarker &&
 video.readyState >= 2 &&
 video.currentTime !== lastVideoTime
 
@@ -1487,7 +1653,7 @@ performance.now();
 try{
 
 const result =
-landmarker.detectForVideo(
+cameraLandmarker.detectForVideo(
 
 video,
 now
@@ -1502,9 +1668,39 @@ performance.now()-t
 ).toFixed(1);
 
 
-drawMesh(
-result
+const detected =
+result.faceLandmarks || [];
+
+
+faces.textContent =
+detected.length;
+
+
+if(
+detected.length
+){
+
+drawCameraMesh(
+detected[0]
 );
+
+}else{
+
+ctx.clearRect(
+0,
+0,
+canvas.width,
+canvas.height
+);
+
+faces.textContent =
+"0";
+
+setStatus(
+"Đang tìm khuôn mặt..."
+);
+
+}
 
 
 aiFrames++;
@@ -1513,8 +1709,10 @@ aiFrames++;
 }catch(error){
 
 console.error(
+"CAMERA AI:",
 error
 );
+
 
 setStatus(
 "FACE MESH ERROR"
@@ -1545,17 +1743,55 @@ true;
 
 try{
 
+
 /*
-Giữ nguyên thứ tự
-bản 2.2.
+1.
+Camera
 */
 
 await startCamera();
 
+
+/*
+2.
+MediaPipe JS
+*/
+
 await loadMediaPipe();
 
-await createFaceLandmarker();
 
+/*
+3.
+Camera AI
+*/
+
+await createCameraLandmarker();
+
+
+/*
+4.
+Image AI riêng
+*/
+
+await createImageLandmarker();
+
+
+/*
+5.
+Nếu ảnh đã chọn trước đó
+*/
+
+if(sourceImage){
+
+await detectPhotoFace();
+
+}
+
+
+/*
+6.
+Start realtime
+*/
 
 running =
 true;
@@ -1563,6 +1799,7 @@ true;
 
 message.style.display =
 "none";
+
 
 start.style.display =
 "none";
@@ -1609,8 +1846,18 @@ false;
 
 };
 
+
+/* =========================================
+   INITIAL
+========================================= */
+
+setStatus(
+"Sẵn sàng - chọn ảnh hoặc START"
+);
+
 </script>
 
 </body>
+
 </html>
 ```
