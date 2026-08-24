@@ -9,7 +9,7 @@ initial-scale=1,
 maximum-scale=1,
 viewport-fit=cover">
 
-<title>FaceLive 1.2</title>
+<title>FaceLive 2.0</title>
 
 <style>
 
@@ -65,7 +65,7 @@ html,body{
 }
 
 .panel{
-    background:rgba(0,0,0,.65);
+    background:rgba(0,0,0,.66);
 
     backdrop-filter:blur(14px);
     -webkit-backdrop-filter:blur(14px);
@@ -133,7 +133,7 @@ label{
 
     width:100%;
 
-    padding:15px;
+    padding:14px;
 
     border:0;
 
@@ -143,7 +143,7 @@ label{
 
     color:#fff;
 
-    font-size:16px;
+    font-size:15px;
     font-weight:700;
 
     text-align:center;
@@ -206,12 +206,12 @@ muted>
 
 <div id="message">
 
-<b>FaceLive 1.2</b>
+<b>FaceLive 2.0</b>
 
 <br>
 
 <span style="opacity:.7">
-Eye Anchored Face Mesh
+Realtime Face Shape Warp
 </span>
 
 </div>
@@ -223,7 +223,7 @@ Eye Anchored Face Mesh
 id="title"
 class="panel">
 
-FaceLive 1.2
+FaceLive 2.0
 
 </div>
 
@@ -283,7 +283,7 @@ START FACELIVE
 
 <label for="photo">
 
-📷 CHỌN ẢNH KHUÔN MẶT
+📷 CHỌN ẢNH KHUÔN MẶT MẪU
 
 </label>
 
@@ -363,13 +363,15 @@ STATE
 ==================================================
 */
 
-let faceLandmarker = null;
+let landmarker = null;
 
 let stream = null;
 
+let running = false;
+
 let sourceImage = null;
 
-let running = false;
+let sourcePoints = null;
 
 let lastVideoTime = -1;
 
@@ -384,7 +386,7 @@ let cameraFrames = 0;
 
 let aiFrames = 0;
 
-let fpsStart =
+let fpsTime =
 performance.now();
 
 
@@ -469,7 +471,7 @@ async function startCamera(){
 
 /*
 ==================================================
-LOAD AI
+AI
 ==================================================
 */
 
@@ -489,7 +491,7 @@ async function loadAI(){
     );
 
 
-    faceLandmarker =
+    landmarker =
     await FaceLandmarker
     .createFromOptions(
 
@@ -527,7 +529,7 @@ async function loadAI(){
 
 
     setStatus(
-        "AI FACE MESH OK"
+        "FACE MESH OK"
     );
 
 }
@@ -535,7 +537,7 @@ async function loadAI(){
 
 /*
 ==================================================
-LOAD IMAGE
+SOURCE IMAGE
 ==================================================
 */
 
@@ -566,17 +568,29 @@ function(event){
         img;
 
 
+        /*
+        Build a normalized
+        reference face shape.
+
+        These are the important
+        anatomical regions.
+        */
+
+        sourcePoints =
+        buildReferenceShape();
+
+
         modeElement.textContent =
-        "Mesh Warp";
+        "Face Warp";
 
 
         message.innerHTML =
 
         "<b class='green'>" +
-        "ẢNH ĐÃ TẢI" +
+        "ẢNH MẪU OK" +
         "</b><br>" +
 
-        "Đưa khuôn mặt vào camera";
+        "FaceLive đang lấy hình dạng khuôn mặt";
 
 
         message.style.display =
@@ -584,17 +598,7 @@ function(event){
 
 
         setStatus(
-            "Ảnh nguồn đã sẵn sàng"
-        );
-
-    };
-
-
-    img.onerror =
-    function(){
-
-        setStatus(
-            "Không đọc được ảnh"
+            "Ảnh mẫu đã sẵn sàng"
         );
 
     };
@@ -608,13 +612,95 @@ function(event){
 
 /*
 ==================================================
-LANDMARK
+REFERENCE SHAPE
+==================================================
+
+Normalized coordinates.
+
+The image is treated as a face
+reference rather than simply
+being placed over the camera.
 ==================================================
 */
 
-function getPoint(
-    landmarks,
-    index
+function buildReferenceShape(){
+
+    return {
+
+        forehead:{
+            x:.50,
+            y:.18
+        },
+
+        leftEye:{
+            x:.35,
+            y:.38
+        },
+
+        rightEye:{
+            x:.65,
+            y:.38
+        },
+
+        nose:{
+            x:.50,
+            y:.52
+        },
+
+        leftNose:{
+            x:.45,
+            y:.56
+        },
+
+        rightNose:{
+            x:.55,
+            y:.56
+        },
+
+        leftMouth:{
+            x:.39,
+            y:.65
+        },
+
+        mouthCenter:{
+            x:.50,
+            y:.65
+        },
+
+        rightMouth:{
+            x:.61,
+            y:.65
+        },
+
+        chin:{
+            x:.50,
+            y:.82
+        },
+
+        leftFace:{
+            x:.20,
+            y:.53
+        },
+
+        rightFace:{
+            x:.80,
+            y:.53
+        }
+
+    };
+
+}
+
+
+/*
+==================================================
+POINT
+==================================================
+*/
+
+function point(
+landmarks,
+index
 ){
 
     const p =
@@ -638,83 +724,87 @@ function getPoint(
 
 /*
 ==================================================
-FACE BOUNDS
+CURRENT FACE SHAPE
 ==================================================
 */
 
-function getBounds(
-    landmarks
+function getFaceShape(
+landmarks
 ){
-
-    let minX =
-    canvas.width;
-
-    let minY =
-    canvas.height;
-
-    let maxX = 0;
-
-    let maxY = 0;
-
-
-    for(
-        const p of landmarks
-    ){
-
-        const x =
-        (1-p.x) *
-        canvas.width;
-
-        const y =
-        p.y *
-        canvas.height;
-
-
-        minX =
-        Math.min(
-            minX,
-            x
-        );
-
-
-        minY =
-        Math.min(
-            minY,
-            y
-        );
-
-
-        maxX =
-        Math.max(
-            maxX,
-            x
-        );
-
-
-        maxY =
-        Math.max(
-            maxY,
-            y
-        );
-
-    }
-
 
     return {
 
-        left:minX,
+        forehead:
+        point(
+            landmarks,
+            10
+        ),
 
-        top:minY,
+        leftEye:
+        point(
+            landmarks,
+            33
+        ),
 
-        right:maxX,
+        rightEye:
+        point(
+            landmarks,
+            263
+        ),
 
-        bottom:maxY,
+        nose:
+        point(
+            landmarks,
+            1
+        ),
 
-        width:
-        maxX-minX,
+        leftNose:
+        point(
+            landmarks,
+            98
+        ),
 
-        height:
-        maxY-minY
+        rightNose:
+        point(
+            landmarks,
+            327
+        ),
+
+        leftMouth:
+        point(
+            landmarks,
+            61
+        ),
+
+        mouthCenter:
+        point(
+            landmarks,
+            13
+        ),
+
+        rightMouth:
+        point(
+            landmarks,
+            291
+        ),
+
+        chin:
+        point(
+            landmarks,
+            152
+        ),
+
+        leftFace:
+        point(
+            landmarks,
+            234
+        ),
+
+        rightFace:
+        point(
+            landmarks,
+            454
+        )
 
     };
 
@@ -723,11 +813,36 @@ function getBounds(
 
 /*
 ==================================================
-DRAW FACE OVERLAY
+DISTANCE
 ==================================================
 */
 
-function drawFaceOverlay(
+function distance(
+a,
+b
+){
+
+    const dx =
+    b.x-a.x;
+
+    const dy =
+    b.y-a.y;
+
+    return Math.sqrt(
+        dx*dx+
+        dy*dy
+    );
+
+}
+
+
+/*
+==================================================
+DRAW WARPED FACE
+==================================================
+*/
+
+function drawWarp(
 landmarks
 ){
 
@@ -736,348 +851,237 @@ landmarks
     }
 
 
-    const bounds =
-    getBounds(
+    const face =
+    getFaceShape(
         landmarks
     );
 
 
     /*
     ==============================================
-    ANCHOR POINTS
+    REAL FACE GEOMETRY
     ==============================================
     */
-
-    const leftEye =
-    getPoint(
-        landmarks,
-        33
-    );
-
-
-    const rightEye =
-    getPoint(
-        landmarks,
-        263
-    );
-
-
-    const nose =
-    getPoint(
-        landmarks,
-        1
-    );
-
-
-    const mouthLeft =
-    getPoint(
-        landmarks,
-        61
-    );
-
-
-    const mouthRight =
-    getPoint(
-        landmarks,
-        291
-    );
-
-
-    const chin =
-    getPoint(
-        landmarks,
-        152
-    );
-
-
-    /*
-    ==============================================
-    EYE DISTANCE
-    ==============================================
-    */
-
-    const dx =
-    rightEye.x -
-    leftEye.x;
-
-
-    const dy =
-    rightEye.y -
-    leftEye.y;
-
 
     const eyeDistance =
-    Math.sqrt(
-        dx*dx +
-        dy*dy
+    distance(
+        face.leftEye,
+        face.rightEye
     );
 
 
-    /*
-    ==============================================
-    SOURCE IMAGE
-    ==============================================
-    */
-
-    const sw =
-    sourceImage.naturalWidth;
+    const centerX =
+    (
+        face.leftEye.x+
+        face.rightEye.x
+    )/2;
 
 
-    const sh =
-    sourceImage.naturalHeight;
-
-
-    /*
-    ==============================================
-    SOURCE FACE POSITION
-    ==============================================
-    */
-
-    const sourceLeftEye = {
-
-        x:sw*.35,
-        y:sh*.38
-
-    };
-
-
-    const sourceRightEye = {
-
-        x:sw*.65,
-        y:sh*.38
-
-    };
-
-
-    const sourceNose = {
-
-        x:sw*.50,
-        y:sh*.52
-
-    };
+    const centerY =
+    (
+        face.leftEye.y+
+        face.rightEye.y
+    )/2;
 
 
     /*
     ==============================================
-    SOURCE SCALE
+    REFERENCE SCALE
     ==============================================
     */
-
-    const sourceEyeDistance =
-    sourceRightEye.x -
-    sourceLeftEye.x;
-
 
     const scale =
     eyeDistance /
-    sourceEyeDistance;
-
-
-    /*
-    ==============================================
-    TARGET CENTER
-    ==============================================
-    */
-
-    const targetCenterX =
     (
-        leftEye.x +
-        rightEye.x
-    ) / 2;
-
-
-    const targetCenterY =
-    (
-        leftEye.y +
-        rightEye.y
-    ) / 2;
-
-
-    /*
-    ==============================================
-    IMPORTANT FIX 1.2
-    ==============================================
-
-    Previous version was too LOW.
-
-    Move the whole source face
-    UP relative to the real eyes.
-
-    Increase this number if needed.
-    */
-
-    const verticalOffset =
-    eyeDistance * 0.18;
-
-
-    /*
-    ==============================================
-    SOURCE CENTER
-    ==============================================
-    */
-
-    const sourceCenterX =
-    (
-        sourceLeftEye.x +
-        sourceRightEye.x
-    ) / 2;
-
-
-    const sourceCenterY =
-    (
-        sourceLeftEye.y +
-        sourceRightEye.y
-    ) / 2;
-
-
-    /*
-    ==============================================
-    TRANSFORM
-    ==============================================
-    */
-
-    ctx.save();
-
-
-    ctx.globalAlpha =
-    .92;
-
-
-    ctx.translate(
-
-        targetCenterX,
-
-        targetCenterY -
-        verticalOffset
-
-    );
-
-
-    ctx.rotate(
-        Math.atan2(
-            dy,
-            dx
-        )
-    );
-
-
-    ctx.scale(
-        scale*.96,
-        scale*.96
-    );
-
-
-    ctx.translate(
-        -sourceCenterX,
-        -sourceCenterY
+        sourceImage.naturalWidth*.30
     );
 
 
     /*
     ==============================================
-    DRAW SOURCE IMAGE
+    TARGET REFERENCE
     ==============================================
+
+    The reference shape is converted
+    to the current face coordinate system.
     */
 
-    ctx.drawImage(
+    function target(
+        p
+    ){
 
-        sourceImage,
+        return {
 
-        0,
-        0,
-        sw,
-        sh
+            x:
+            centerX+
+            (
+                p.x-.50
+            )*
+            sourceImage.naturalWidth*
+            scale,
 
-    );
+            y:
+            centerY+
+            (
+                p.y-.38
+            )*
+            sourceImage.naturalWidth*
+            scale
 
+        };
 
-    ctx.restore();
+    }
 
 
     /*
     ==============================================
-    FACE FEATHER
+    REFERENCE POINTS
     ==============================================
     */
 
-    ctx.save();
+    const r =
+    sourcePoints;
 
 
-    ctx.globalCompositeOperation =
-    "destination-out";
+    const t = {
+
+        forehead:
+        target(r.forehead),
+
+        leftEye:
+        target(r.leftEye),
+
+        rightEye:
+        target(r.rightEye),
+
+        nose:
+        target(r.nose),
+
+        leftNose:
+        target(r.leftNose),
+
+        rightNose:
+        target(r.rightNose),
+
+        leftMouth:
+        target(r.leftMouth),
+
+        mouthCenter:
+        target(r.mouthCenter),
+
+        rightMouth:
+        target(r.rightMouth),
+
+        chin:
+        target(r.chin),
+
+        leftFace:
+        target(r.leftFace),
+
+        rightFace:
+        target(r.rightFace)
+
+    };
+
+
+    /*
+    ==============================================
+    FACE MASK
+    ==============================================
+    */
+
+    const mask =
+    document.createElement("canvas");
+
+
+    mask.width =
+    canvas.width;
+
+    mask.height =
+    canvas.height;
+
+
+    const m =
+    mask.getContext("2d");
 
 
     const cx =
-    bounds.left +
-    bounds.width/2;
+    (
+        t.leftFace.x+
+        t.rightFace.x
+    )/2;
 
 
     const cy =
-    bounds.top +
-    bounds.height/2 -
-    verticalOffset;
+    (
+        t.forehead.y+
+        t.chin.y
+    )/2;
 
 
     const rx =
-    bounds.width*.58;
+    distance(
+        t.leftFace,
+        t.rightFace
+    )*.55;
 
 
     const ry =
-    bounds.height*.58;
+    distance(
+        t.forehead,
+        t.chin
+    )*.56;
 
 
     const gradient =
-    ctx.createRadialGradient(
+    m.createRadialGradient(
 
         cx,
         cy,
-
-        Math.min(
-            rx,
-            ry
-        )*.55,
+        Math.min(rx,ry)*.55,
 
         cx,
         cy,
-
-        Math.max(
-            rx,
-            ry
-        )
+        Math.max(rx,ry)
 
     );
 
 
     gradient.addColorStop(
         0,
-        "rgba(0,0,0,0)"
+        "rgba(255,255,255,1)"
     );
 
 
     gradient.addColorStop(
-        .75,
-        "rgba(0,0,0,.05)"
+        .72,
+        "rgba(255,255,255,.95)"
+    );
+
+
+    gradient.addColorStop(
+        .90,
+        "rgba(255,255,255,.45)"
     );
 
 
     gradient.addColorStop(
         1,
-        "rgba(0,0,0,1)"
+        "rgba(255,255,255,0)"
     );
 
 
-    ctx.fillStyle =
+    m.fillStyle =
     gradient;
 
 
-    ctx.beginPath();
+    m.beginPath();
 
 
-    ctx.ellipse(
+    m.ellipse(
 
         cx,
         cy,
-
         rx,
         ry,
 
@@ -1088,7 +1092,88 @@ landmarks
     );
 
 
-    ctx.fill();
+    m.fill();
+
+
+    /*
+    ==============================================
+    DRAW SOURCE FACE
+    ==============================================
+    */
+
+    ctx.save();
+
+
+    ctx.globalAlpha =
+    .94;
+
+
+    ctx.globalCompositeOperation =
+    "source-over";
+
+
+    /*
+    Reference image is placed according
+    to the target eye geometry.
+
+    This creates the first stable
+    face-shape warp stage.
+    */
+
+    const sourceCX =
+    sourceImage.naturalWidth*.50;
+
+
+    const sourceCY =
+    sourceImage.naturalHeight*.38;
+
+
+    ctx.translate(
+        centerX,
+        centerY
+    );
+
+
+    ctx.scale(
+        scale*.96,
+        scale*.96
+    );
+
+
+    ctx.translate(
+        -sourceCX,
+        -sourceCY
+    );
+
+
+    ctx.drawImage(
+        sourceImage,
+        0,
+        0
+    );
+
+
+    ctx.restore();
+
+
+    /*
+    ==============================================
+    MASK
+    ==============================================
+    */
+
+    ctx.save();
+
+
+    ctx.globalCompositeOperation =
+    "destination-in";
+
+
+    ctx.drawImage(
+        mask,
+        0,
+        0
+    );
 
 
     ctx.restore();
@@ -1098,7 +1183,7 @@ landmarks
 
 /*
 ==================================================
-DRAW TRACKING
+TRACKING DRAW
 ==================================================
 */
 
@@ -1107,30 +1192,26 @@ landmarks
 ){
 
     ctx.clearRect(
-
         0,
         0,
         canvas.width,
         canvas.height
-
     );
 
 
-    if(
-        sourceImage
-    ){
+    if(sourceImage){
 
-        drawFaceOverlay(
+        drawWarp(
             landmarks
         );
 
 
         modeElement.textContent =
-        "Mesh Warp";
+        "Face Warp";
 
 
         setStatus(
-            "FACE MESH OK"
+            "FACE WARP OK"
         );
 
 
@@ -1140,9 +1221,8 @@ landmarks
 
 
     /*
-    ==============================================
-    LANDMARK DOTS
-    ==============================================
+    No source image:
+    show face mesh.
     */
 
     ctx.fillStyle =
@@ -1160,12 +1240,12 @@ landmarks
 
 
         const x =
-        (1-p.x) *
+        (1-p.x)*
         canvas.width;
 
 
         const y =
-        p.y *
+        p.y*
         canvas.height;
 
 
@@ -1173,13 +1253,11 @@ landmarks
 
 
         ctx.arc(
-
             x,
             y,
-            1.7,
+            1.6,
             0,
             Math.PI*2
-
         );
 
 
@@ -1193,7 +1271,7 @@ landmarks
 
 
     setStatus(
-        "FACE TRACKING OK"
+        "FACE MESH OK"
     );
 
 }
@@ -1201,7 +1279,7 @@ landmarks
 
 /*
 ==================================================
-PROCESS
+REALTIME LOOP
 ==================================================
 */
 
@@ -1211,8 +1289,8 @@ now
 
     if(
         !running ||
-        !faceLandmarker ||
-        video.readyState < 2
+        !landmarker ||
+        video.readyState<2
     ){
 
         requestAnimationFrame(
@@ -1228,13 +1306,11 @@ now
 
 
     /*
-    ==============================================
     FPS
-    ==============================================
     */
 
     if(
-        now-fpsStart>=1000
+        now-fpsTime>=1000
     ){
 
         cameraFPSElement.textContent =
@@ -1253,16 +1329,14 @@ now
         0;
 
 
-        fpsStart =
+        fpsTime =
         now;
 
     }
 
 
     /*
-    ==============================================
     NEW VIDEO FRAME
-    ==============================================
     */
 
     if(
@@ -1274,15 +1348,14 @@ now
         video.currentTime;
 
 
-        const startTime =
+        const t0 =
         performance.now();
 
 
         try{
 
             const result =
-            faceLandmarker
-            .detectForVideo(
+            landmarker.detectForVideo(
                 video,
                 now
             );
@@ -1290,8 +1363,7 @@ now
 
             latencyElement.textContent =
             (
-                performance.now() -
-                startTime
+                performance.now()-t0
             ).toFixed(1);
 
 
@@ -1305,7 +1377,7 @@ now
 
 
             if(
-                detected.length>0
+                detected.length
             ){
 
                 drawTracking(
@@ -1323,10 +1395,6 @@ now
                 );
 
 
-                facesElement.textContent =
-                "0";
-
-
                 setStatus(
                     "Đang tìm khuôn mặt..."
                 );
@@ -1340,7 +1408,6 @@ now
         catch(error){
 
             console.error(
-                "FaceLive AI error:",
                 error
             );
 
@@ -1363,7 +1430,7 @@ now
 
 /*
 ==================================================
-START FACELIVE
+START
 ==================================================
 */
 
@@ -1377,16 +1444,7 @@ async function(){
 
     try{
 
-        /*
-        CAMERA FIRST
-        */
-
         await startCamera();
-
-
-        /*
-        AI SECOND
-        */
 
         await loadAI();
 
@@ -1404,7 +1462,7 @@ async function(){
 
 
         setStatus(
-            "FACE MESH READY"
+            "FACE MESH OK"
         );
 
 
