@@ -9,74 +9,177 @@ initial-scale=1,
 maximum-scale=1,
 viewport-fit=cover">
 
-<title>FaceLive 0.5 Diagnostic</title>
+<title>FaceLive 0.6</title>
 
 <style>
+
+*{
+box-sizing:border-box;
+}
+
 html,body{
-    margin:0;
-    padding:0;
-    width:100%;
-    height:100%;
-    background:#000;
-    color:#fff;
-    font-family:-apple-system,
-    BlinkMacSystemFont,
-    "Helvetica Neue",
-    Arial,
-    sans-serif;
+margin:0;
+padding:0;
+width:100%;
+height:100%;
+overflow:hidden;
+background:#000;
+color:#fff;
+font-family:-apple-system,
+BlinkMacSystemFont,
+"Helvetica Neue",
+Arial,sans-serif;
 }
 
 #app{
-    padding:20px;
-}
-
-h2{
-    margin:20px 0;
-}
-
-button{
-    width:100%;
-    padding:18px;
-    border:0;
-    border-radius:16px;
-    background:#fff;
-    color:#000;
-    font-size:18px;
-    font-weight:700;
-}
-
-#status{
-    margin-top:20px;
-    padding:18px;
-    background:#181818;
-    border-radius:15px;
-    line-height:1.7;
-    white-space:pre-wrap;
+position:fixed;
+inset:0;
+background:#000;
 }
 
 #video{
-    display:none;
-    width:100%;
-    margin-top:20px;
-    border-radius:15px;
-    background:#111;
+position:absolute;
+inset:0;
+
+width:100%;
+height:100%;
+
+object-fit:cover;
+
+transform:scaleX(-1);
+
+background:#000;
 }
+
+#canvas{
+position:absolute;
+inset:0;
+
+width:100%;
+height:100%;
+
+pointer-events:none;
+}
+
+.panel{
+background:rgba(0,0,0,.62);
+
+backdrop-filter:blur(14px);
+-webkit-backdrop-filter:blur(14px);
+
+border-radius:15px;
+}
+
+#top{
+position:absolute;
+
+top:max(15px,env(safe-area-inset-top));
+
+left:12px;
+right:12px;
+
+display:flex;
+justify-content:space-between;
+align-items:flex-start;
+
+z-index:10;
+}
+
+#title{
+padding:12px 14px;
+
+font-size:19px;
+font-weight:700;
+}
+
+#stats{
+padding:11px 13px;
+
+font-size:12px;
+
+line-height:1.6;
+
+text-align:right;
+
+font-variant-numeric:tabular-nums;
+}
+
+#bottom{
+position:absolute;
+
+left:12px;
+right:12px;
+
+bottom:max(15px,env(safe-area-inset-bottom));
+
+z-index:10;
+}
+
+#status{
+display:inline-block;
+
+padding:10px 13px;
+
+margin-bottom:10px;
+
+font-size:13px;
+}
+
+#start{
+width:100%;
+
+padding:17px;
+
+border:0;
+
+border-radius:17px;
+
+background:rgba(255,255,255,.18);
+
+color:#fff;
+
+font-size:17px;
+
+font-weight:700;
+
+-webkit-appearance:none;
+}
+
+#start:active{
+transform:scale(.98);
+}
+
+#message{
+position:absolute;
+
+left:20px;
+right:20px;
+
+top:50%;
+
+transform:translateY(-50%);
+
+text-align:center;
+
+font-size:15px;
+
+line-height:1.6;
+
+z-index:5;
+
+pointer-events:none;
+}
+
+.error{
+color:#ff453a;
+}
+
 </style>
 </head>
 
 <body>
 
 <div id="app">
-
-<h2>FaceLive 0.5</h2>
-
-<button id="start">
-START CAMERA
-</button>
-
-<div id="status">
-CHƯA KIỂM TRA
-</div>
 
 <video
 id="video"
@@ -85,151 +188,741 @@ playsinline
 muted>
 </video>
 
+<canvas id="canvas"></canvas>
+
+
+<div id="message">
+
+<b>FaceLive 0.6</b>
+
+<br>
+
+<span style="opacity:.65">
+AI Face Tracking
+</span>
+
 </div>
+
+
+<div id="top">
+
+<div id="title" class="panel">
+FaceLive
+</div>
+
+
+<div id="stats" class="panel">
+
+Camera:
+<b id="cameraFPS">--</b> FPS
+
+<br>
+
+AI:
+<b id="aiFPS">--</b> FPS
+
+<br>
+
+Inference:
+<b id="latency">--</b> ms
+
+<br>
+
+Faces:
+<b id="faces">0</b>
+
+<br>
+
+Resolution:
+<b id="resolution">--</b>
+
+</div>
+
+</div>
+
+
+<div id="bottom">
+
+<div id="status" class="panel">
+
+● Chưa khởi động
+
+</div>
+
+
+<button id="start">
+START FACELIVE
+</button>
+
+</div>
+
+</div>
+
 
 <script>
 
-(function(){
+/*
+==================================================
+FACE LIVE 0.6
+==================================================
+*/
 
-var button =
+
+var video =
+document.getElementById("video");
+
+var canvas =
+document.getElementById("canvas");
+
+var ctx =
+canvas.getContext("2d");
+
+var start =
 document.getElementById("start");
 
 var status =
 document.getElementById("status");
 
-var video =
-document.getElementById("video");
+var message =
+document.getElementById("message");
 
+var cameraFPS =
+document.getElementById("cameraFPS");
+
+var aiFPS =
+document.getElementById("aiFPS");
+
+var latency =
+document.getElementById("latency");
+
+var faces =
+document.getElementById("faces");
+
+var resolution =
+document.getElementById("resolution");
+
+
+var landmarker = null;
+
+var stream = null;
+
+var running = false;
+
+var lastVideoTime = -1;
+
+
+/*
+FPS
+*/
+
+var cameraFrames = 0;
+
+var aiFrames = 0;
+
+var fpsStart =
+performance.now();
+
+
+/*
+==================================================
+STATUS
+==================================================
+*/
 
 function setStatus(text){
 
-status.innerHTML = text;
+status.innerHTML =
+"● " + text;
 
 }
 
 
 /*
-================================
-STEP 1
-================================
+==================================================
+LOAD MEDIAPIPE
+==================================================
 */
 
-button.addEventListener(
-"click",
+async function loadMediaPipe(){
+
+setStatus(
+"Đang tải AI..."
+);
+
+
+/*
+Load official MediaPipe
+bundle.
+*/
+
+await new Promise(
+function(resolve,reject){
+
+var script =
+document.createElement("script");
+
+script.src =
+"https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/vision_bundle.js";
+
+script.onload =
 function(){
 
-setStatus(
-"① JAVASCRIPT OK\n\n" +
-"Đang kiểm tra Camera API..."
+resolve();
+
+};
+
+script.onerror =
+function(){
+
+reject(
+new Error(
+"Không tải được MediaPipe"
+)
 );
+
+};
+
+document.head.appendChild(
+script
+);
+
+});
 
 
 /*
-================================
-STEP 2
-================================
+Check library
 */
 
 if(
-!navigator.mediaDevices
+!window.vision
 ){
 
-setStatus(
-"❌ CAMERA API KHÔNG TỒN TẠI"
+throw new Error(
+"MediaPipe library không tồn tại"
 );
-
-return;
 
 }
 
 
-if(
-!navigator.mediaDevices.getUserMedia
-){
-
 setStatus(
-"❌ getUserMedia KHÔNG TỒN TẠI"
+"MediaPipe OK — tải WASM..."
 );
 
-return;
+
+var vision =
+await window.vision
+.FilesetResolver
+.forVisionTasks(
+
+"https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/wasm"
+
+);
+
+
+setStatus(
+"Tải Face Landmarker..."
+);
+
+
+landmarker =
+await window.vision
+.FaceLandmarker
+.createFromOptions(
+
+vision,
+
+{
+
+baseOptions:{
+
+modelAssetPath:
+
+"https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task",
+
+delegate:"GPU"
+
+},
+
+runningMode:"VIDEO",
+
+numFaces:1,
+
+minFaceDetectionConfidence:0.5,
+
+minFacePresenceConfidence:0.5,
+
+minTrackingConfidence:0.5,
+
+outputFaceBlendshapes:true,
+
+outputFacialTransformationMatrixes:true
+
+}
+
+);
+
+
+setStatus(
+"AI đã sẵn sàng"
+);
 
 }
 
 
+/*
+==================================================
+CAMERA
+==================================================
+*/
+
+async function startCamera(){
+
 setStatus(
-"② CAMERA API OK\n\n" +
-"Đang xin quyền camera..."
+"Đang mở camera..."
 );
 
 
-/*
-================================
-STEP 3
-================================
-*/
-
-navigator.mediaDevices
+stream =
+await navigator.mediaDevices
 .getUserMedia({
 
 video:{
-facingMode:"user"
+
+facingMode:{
+ideal:"user"
+},
+
+width:{
+ideal:1280
+},
+
+height:{
+ideal:720
+},
+
+frameRate:{
+ideal:30,
+max:30
+}
+
 },
 
 audio:false
 
-})
+});
 
-.then(
-function(stream){
 
 video.srcObject =
 stream;
 
-video.style.display =
+
+await video.play();
+
+
+canvas.width =
+video.videoWidth;
+
+canvas.height =
+video.videoHeight;
+
+
+resolution.textContent =
+video.videoWidth +
+"×" +
+video.videoHeight;
+
+
+setStatus(
+"Camera OK"
+);
+
+}
+
+
+/*
+==================================================
+DRAW FACE
+==================================================
+*/
+
+function drawFace(result){
+
+ctx.clearRect(
+0,
+0,
+canvas.width,
+canvas.height
+);
+
+
+var list =
+result.faceLandmarks || [];
+
+
+faces.textContent =
+list.length;
+
+
+if(
+list.length === 0
+){
+
+setStatus(
+"Đang tìm khuôn mặt..."
+);
+
+return;
+
+}
+
+
+setStatus(
+"● FACE TRACKING OK"
+);
+
+
+for(
+var f=0;
+f<list.length;
+f++
+){
+
+var landmarks =
+list[f];
+
+
+ctx.fillStyle =
+"#34c759";
+
+
+/*
+Draw landmarks
+*/
+
+for(
+var i=0;
+i<landmarks.length;
+i+=3
+){
+
+var p =
+landmarks[i];
+
+
+/*
+Mirror X
+*/
+
+var x =
+(1-p.x) *
+canvas.width;
+
+var y =
+p.y *
+canvas.height;
+
+
+ctx.beginPath();
+
+ctx.arc(
+x,
+y,
+1.6,
+0,
+Math.PI*2
+);
+
+ctx.fill();
+
+}
+
+
+/*
+Face outline
+*/
+
+var minX=1;
+var minY=1;
+
+var maxX=0;
+var maxY=0;
+
+
+for(
+var j=0;
+j<landmarks.length;
+j++
+){
+
+var q =
+landmarks[j];
+
+minX =
+Math.min(
+minX,
+q.x
+);
+
+minY =
+Math.min(
+minY,
+q.y
+);
+
+maxX =
+Math.max(
+maxX,
+q.x
+);
+
+maxY =
+Math.max(
+maxY,
+q.y
+);
+
+}
+
+
+var left =
+(1-maxX) *
+canvas.width;
+
+var top =
+minY *
+canvas.height;
+
+var width =
+(maxX-minX) *
+canvas.width;
+
+var height =
+(maxY-minY) *
+canvas.height;
+
+
+ctx.strokeStyle =
+"#34c759";
+
+ctx.lineWidth=3;
+
+
+ctx.beginPath();
+
+ctx.ellipse(
+
+left + width/2,
+
+top + height/2,
+
+Math.abs(width)/2,
+
+height/2,
+
+0,
+
+0,
+
+Math.PI*2
+
+);
+
+ctx.stroke();
+
+}
+
+}
+
+
+/*
+==================================================
+REALTIME
+==================================================
+*/
+
+function processFrame(now){
+
+if(
+!running ||
+!landmarker ||
+video.readyState < 2
+){
+
+requestAnimationFrame(
+processFrame
+);
+
+return;
+
+}
+
+
+cameraFrames++;
+
+
+if(
+now-fpsStart >= 1000
+){
+
+cameraFPS.textContent =
+cameraFrames;
+
+aiFPS.textContent =
+aiFrames;
+
+cameraFrames=0;
+
+aiFrames=0;
+
+fpsStart=now;
+
+}
+
+
+if(
+video.currentTime !==
+lastVideoTime
+){
+
+lastVideoTime =
+video.currentTime;
+
+
+var startTime =
+performance.now();
+
+
+try{
+
+var result =
+landmarker
+.detectForVideo(
+video,
+now
+);
+
+
+latency.textContent =
+(
+performance.now() -
+startTime
+).toFixed(1);
+
+
+drawFace(
+result
+);
+
+
+aiFrames++;
+
+
+}catch(error){
+
+console.error(
+error
+);
+
+setStatus(
+"AI ERROR: " +
+error.message
+);
+
+}
+
+}
+
+
+requestAnimationFrame(
+processFrame
+);
+
+}
+
+
+/*
+==================================================
+START
+==================================================
+*/
+
+start.onclick =
+async function(){
+
+start.disabled=true;
+
+
+try{
+
+
+/*
+Camera first
+*/
+
+await startCamera();
+
+
+/*
+Then AI
+*/
+
+await loadMediaPipe();
+
+
+/*
+Start realtime
+*/
+
+running=true;
+
+start.style.display =
+"none";
+
+message.style.display =
+"none";
+
+
+requestAnimationFrame(
+processFrame
+);
+
+
+}catch(error){
+
+console.error(
+error
+);
+
+setStatus(
+"LỖI: " +
+error.name
+);
+
+
+message.innerHTML =
+
+"<b class='error'>" +
+"FACELIVE ERROR" +
+"</b>" +
+
+"<br><br>" +
+
+error.name +
+
+"<br>" +
+
+error.message;
+
+
+message.style.display =
 "block";
 
 
-return video.play();
+start.disabled=false;
 
-})
+}
 
-.then(
-function(){
-
-setStatus(
-
-"③ CAMERA OK\n\n" +
-
-"JavaScript: OK\n" +
-
-"Camera API: OK\n\n" +
-
-"FaceLive có thể tiếp tục."
-
-);
-
-})
-
-.catch(
-function(error){
-
-setStatus(
-
-"❌ CAMERA ERROR\n\n" +
-
-"Name: " +
-error.name +
-
-"\n\nMessage: " +
-error.message
-
-);
-
-});
-
-});
-
-})();
+};
 
 </script>
 
