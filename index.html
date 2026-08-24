@@ -1,19 +1,16 @@
-
+```html
 <!doctype html>
 <html lang="vi">
 <head>
 <meta charset="utf-8">
-
 <meta name="viewport"
 content="width=device-width,initial-scale=1,
 maximum-scale=1,viewport-fit=cover">
 
-<title>FaceLive 2.10</title>
+<title>FaceLive 2.9.1</title>
 
 <style>
-*{
-box-sizing:border-box
-}
+*{box-sizing:border-box}
 
 html,body{
 margin:0;
@@ -157,74 +154,56 @@ line-height:1.6;
 z-index:5
 }
 
-.green{
-color:#34c759
-}
-
-.red{
-color:#ff453a
-}
+.green{color:#34c759}
+.red{color:#ff453a}
 </style>
 </head>
 
 <body>
 
-<video
-id="video"
-autoplay
-playsinline
-muted>
-</video>
+<video id="video" autoplay playsinline muted></video>
 
 <canvas id="canvas"></canvas>
 
-<img
-id="photoPreview"
-alt="Ảnh mẫu">
+<img id="photoPreview" alt="Ảnh mẫu">
 
 <div id="message">
-<b>FaceLive 2.10</b><br>
+<b>FaceLive 2.9.1</b><br>
 <span style="opacity:.7">
-Full Face Morph
+Natural Face Morph
 </span>
 </div>
 
 <div id="top">
 
 <div id="title" class="panel">
-FaceLive 2.10
+FaceLive 2.9.1
 </div>
 
 <div id="stats" class="panel">
 
 Camera:
 <b id="cameraFPS">--</b> FPS
-
 <br>
 
 AI:
 <b id="aiFPS">--</b> FPS
-
 <br>
 
 Inference:
 <b id="latency">--</b> ms
-
 <br>
 
 Camera Face:
 <b id="faces">0</b>
-
 <br>
 
 Photo Face:
 <b id="photoFaces">0</b>
-
 <br>
 
 Photo:
 <b id="photoState">OFF</b>
-
 <br>
 
 Mode:
@@ -240,9 +219,7 @@ Mode:
 ● Chưa khởi động
 </div>
 
-<button
-id="start"
-type="button">
+<button id="start" type="button">
 START FACELIVE
 </button>
 
@@ -255,7 +232,7 @@ accept="image/*">
 
 <div class="controlRow">
 Warp:
-<b id="warpValue">78</b>%
+<b id="warpValue">72</b>%
 </div>
 
 <input
@@ -263,11 +240,11 @@ id="warp"
 type="range"
 min="0"
 max="100"
-value="78">
+value="72">
 
 <div class="controlRow">
 Blend:
-<b id="blendValue">86</b>%
+<b id="blendValue">82</b>%
 </div>
 
 <input
@@ -275,7 +252,7 @@ id="blend"
 type="range"
 min="40"
 max="100"
-value="86">
+value="82">
 
 <div class="controlRow">
 Feather:
@@ -301,131 +278,77 @@ value="78">
    MEDIAPIPE
 ========================================= */
 
-let FaceLandmarker = null;
-let FilesetResolver = null;
+let FaceLandmarker=null;
+let FilesetResolver=null;
 
-let cameraLandmarker = null;
-let imageLandmarker = null;
+let cameraLandmarker=null;
+let imageLandmarker=null;
 
 
 /* =========================================
    ELEMENTS
 ========================================= */
 
-const video =
-document.getElementById("video");
+const video=document.getElementById("video");
+const canvas=document.getElementById("canvas");
+const ctx=canvas.getContext("2d");
 
-const canvas =
-document.getElementById("canvas");
+const start=document.getElementById("start");
+const status=document.getElementById("status");
+const message=document.getElementById("message");
 
-const ctx =
-canvas.getContext("2d");
+const cameraFPS=document.getElementById("cameraFPS");
+const aiFPS=document.getElementById("aiFPS");
+const latency=document.getElementById("latency");
+const faces=document.getElementById("faces");
+const photoFaces=document.getElementById("photoFaces");
+const photoState=document.getElementById("photoState");
+const mode=document.getElementById("mode");
 
-const start =
-document.getElementById("start");
+const photoInput=document.getElementById("photoInput");
+const photoPreview=document.getElementById("photoPreview");
 
-const status =
-document.getElementById("status");
+const controls=document.getElementById("controls");
 
-const message =
-document.getElementById("message");
+const warp=document.getElementById("warp");
+const blend=document.getElementById("blend");
+const feather=document.getElementById("feather");
 
-const cameraFPS =
-document.getElementById("cameraFPS");
-
-const aiFPS =
-document.getElementById("aiFPS");
-
-const latency =
-document.getElementById("latency");
-
-const faces =
-document.getElementById("faces");
-
-const photoFaces =
-document.getElementById("photoFaces");
-
-const photoState =
-document.getElementById("photoState");
-
-const mode =
-document.getElementById("mode");
-
-const photoInput =
-document.getElementById("photoInput");
-
-const photoPreview =
-document.getElementById("photoPreview");
-
-const controls =
-document.getElementById("controls");
-
-const warp =
-document.getElementById("warp");
-
-const blend =
-document.getElementById("blend");
-
-const feather =
-document.getElementById("feather");
-
-const warpValue =
-document.getElementById("warpValue");
-
-const blendValue =
-document.getElementById("blendValue");
-
-const featherValue =
-document.getElementById("featherValue");
+const warpValue=document.getElementById("warpValue");
+const blendValue=document.getElementById("blendValue");
+const featherValue=document.getElementById("featherValue");
 
 
 /* =========================================
    STATE
 ========================================= */
 
-let stream = null;
+let stream=null;
+let running=false;
+let lastVideoTime=-1;
 
-let running = false;
+let cameraFrames=0;
+let aiFrames=0;
+let fpsTime=performance.now();
 
-let lastVideoTime = -1;
-
-let cameraFrames = 0;
-
-let aiFrames = 0;
-
-let fpsTime =
-performance.now();
-
-let sourceImage = null;
-
-let mirroredPhoto = null;
-
-let sourceLandmarks = null;
+let sourceImage=null;
+let sourceLandmarks=null;
 
 
 /* =========================================
    CONTROLS
 ========================================= */
 
-warp.oninput = function(){
-
-warpValue.textContent =
-warp.value;
-
+warp.oninput=()=>{
+warpValue.textContent=warp.value;
 };
 
-blend.oninput = function(){
-
-blendValue.textContent =
-blend.value;
-
+blend.oninput=()=>{
+blendValue.textContent=blend.value;
 };
 
-feather.oninput = function(){
-
-featherValue.textContent =
-feather.value;
-
+feather.oninput=()=>{
+featherValue.textContent=feather.value;
 };
 
 
@@ -434,10 +357,7 @@ feather.value;
 ========================================= */
 
 function setStatus(text){
-
-status.textContent =
-"● " + text;
-
+status.textContent="● "+text;
 }
 
 
@@ -447,118 +367,81 @@ status.textContent =
 
 async function startCamera(){
 
-setStatus(
-"Đang mở camera..."
-);
+setStatus("Đang mở camera...");
 
 if(
 !navigator.mediaDevices ||
 !navigator.mediaDevices.getUserMedia
 ){
-
 throw new Error(
 "Camera API không được hỗ trợ"
 );
-
 }
 
-stream =
-await navigator.mediaDevices.getUserMedia({
+stream=await navigator.mediaDevices.getUserMedia({
 
 audio:false,
 
 video:{
 facingMode:"user",
-
-width:{
-ideal:1280
-},
-
-height:{
-ideal:720
-},
-
-frameRate:{
-ideal:30
-}
+width:{ideal:1280},
+height:{ideal:720},
+frameRate:{ideal:30}
 }
 
 });
 
-video.srcObject =
-stream;
+video.srcObject=stream;
 
 await video.play();
 
 await new Promise(resolve=>{
 
 if(video.videoWidth>0){
-
 resolve();
-
 }else{
-
-video.onloadedmetadata =
-resolve;
-
+video.onloadedmetadata=resolve;
 }
 
 });
 
-canvas.width =
-video.videoWidth;
+canvas.width=video.videoWidth;
+canvas.height=video.videoHeight;
 
-canvas.height =
-video.videoHeight;
-
-setStatus(
-"CAMERA OK"
-);
-
+setStatus("CAMERA OK");
 }
 
 
 /* =========================================
-   LOAD MEDIAPIPE
+   MEDIAPIPE
 ========================================= */
 
 async function loadMediaPipe(){
 
-setStatus(
-"Đang tải MediaPipe..."
-);
+setStatus("Đang tải MediaPipe...");
 
-const module =
-await import(
+const module=await import(
 "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.0.1/+esm"
 );
 
-FaceLandmarker =
-module.FaceLandmarker;
-
-FilesetResolver =
-module.FilesetResolver;
+FaceLandmarker=module.FaceLandmarker;
+FilesetResolver=module.FilesetResolver;
 
 if(
 !FaceLandmarker ||
 !FilesetResolver
 ){
-
 throw new Error(
 "MediaPipe module không đầy đủ"
 );
-
 }
 
-setStatus(
-"MediaPipe JavaScript OK"
-);
-
+setStatus("MediaPipe JavaScript OK");
 }
 
 
 /* =========================================
-   CAMERA FACE LANDMARKER
+   CAMERA LANDMARKER
 ========================================= */
 
 async function createCameraLandmarker(){
@@ -567,18 +450,16 @@ setStatus(
 "Đang khởi tạo Camera Face Mesh..."
 );
 
-const vision =
+const vision=
 await FilesetResolver.forVisionTasks(
 
 "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.0.1/wasm"
 
 );
 
-cameraLandmarker =
+cameraLandmarker=
 await FaceLandmarker.createFromOptions(
-
 vision,
-
 {
 
 baseOptions:{
@@ -592,32 +473,24 @@ delegate:"GPU"
 },
 
 runningMode:"VIDEO",
-
 numFaces:1,
 
 minFaceDetectionConfidence:.5,
-
 minFacePresenceConfidence:.5,
-
 minTrackingConfidence:.5,
 
 outputFaceBlendshapes:true,
-
 outputFacialTransformationMatrixes:true
 
 }
-
 );
 
-setStatus(
-"CAMERA FACEMESH OK"
-);
-
+setStatus("CAMERA FACEMESH OK");
 }
 
 
 /* =========================================
-   PHOTO FACE LANDMARKER
+   IMAGE LANDMARKER
 ========================================= */
 
 async function createImageLandmarker(){
@@ -626,18 +499,16 @@ setStatus(
 "Đang khởi tạo Photo Face AI..."
 );
 
-const vision =
+const vision=
 await FilesetResolver.forVisionTasks(
 
 "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.0.1/wasm"
 
 );
 
-imageLandmarker =
+imageLandmarker=
 await FaceLandmarker.createFromOptions(
-
 vision,
-
 {
 
 baseOptions:{
@@ -651,154 +522,68 @@ delegate:"GPU"
 },
 
 runningMode:"IMAGE",
-
 numFaces:1,
 
 minFaceDetectionConfidence:.4,
-
 minFacePresenceConfidence:.4,
-
 minTrackingConfidence:.4,
 
 outputFaceBlendshapes:true,
-
 outputFacialTransformationMatrixes:true
 
 }
-
 );
 
-setStatus(
-"PHOTO FACE AI OK"
-);
-
+setStatus("PHOTO FACE AI OK");
 }
 
 
 /* =========================================
-   MIRROR PHOTO
-========================================= */
-
-function createMirroredPhoto(){
-
-if(!sourceImage)return;
-
-const c =
-document.createElement("canvas");
-
-c.width =
-sourceImage.naturalWidth;
-
-c.height =
-sourceImage.naturalHeight;
-
-const cctx =
-c.getContext("2d");
-
-cctx.save();
-
-cctx.translate(
-c.width,
-0
-);
-
-cctx.scale(
--1,
-1
-);
-
-cctx.drawImage(
-sourceImage,
-0,
-0
-);
-
-cctx.restore();
-
-mirroredPhoto =
-new Image();
-
-mirroredPhoto.onload =
-function(){
-
-setStatus(
-"PHOTO MIRROR OK"
-);
-
-};
-
-mirroredPhoto.src =
-c.toDataURL(
-"image/jpeg",
-.95
-);
-
-}
-
-
-/* =========================================
-   PHOTO INPUT
+   PHOTO
 ========================================= */
 
 photoInput.addEventListener(
 "change",
 async event=>{
 
-const file =
+const file=
 event.target.files &&
 event.target.files[0];
 
 if(!file)return;
 
-const url =
+const url=
 URL.createObjectURL(file);
 
-const img =
-new Image();
+const img=new Image();
 
-img.onload =
-async function(){
+img.onload=async()=>{
 
-sourceImage =
-img;
+sourceImage=img;
 
-photoPreview.src =
-url;
+photoPreview.src=url;
+photoPreview.style.display="block";
 
-photoPreview.style.display =
-"block";
-
-photoState.textContent =
-"ON";
-
-createMirroredPhoto();
+photoState.textContent="ON";
 
 if(imageLandmarker){
-
 await detectPhotoFace();
-
 }
 
 };
 
-img.onerror =
-function(){
-
-setStatus(
-"LỖI ĐỌC ẢNH"
-);
-
+img.onerror=()=>{
+setStatus("LỖI ĐỌC ẢNH");
 };
 
-img.src =
-url;
+img.src=url;
 
 }
 );
 
 
 /* =========================================
-   PHOTO FACE DETECTION
+   PHOTO FACE
 ========================================= */
 
 async function detectPhotoFace(){
@@ -810,27 +595,24 @@ if(
 return;
 }
 
-setStatus(
-"Đang nhận diện mặt ảnh..."
-);
+setStatus("Đang nhận diện mặt ảnh...");
 
 try{
 
-const result =
+const result=
 imageLandmarker.detect(
 sourceImage
 );
 
-const detected =
+const detected=
 result.faceLandmarks || [];
 
-photoFaces.textContent =
+photoFaces.textContent=
 detected.length;
 
 if(!detected.length){
 
-sourceLandmarks =
-null;
+sourceLandmarks=null;
 
 setStatus(
 "KHÔNG THẤY MẶT TRONG ẢNH"
@@ -840,40 +622,30 @@ return;
 
 }
 
-sourceLandmarks =
+sourceLandmarks=
 detected[0];
 
-controls.style.display =
-"block";
+controls.style.display="block";
 
-mode.textContent =
-"ALIGNMENT";
+mode.textContent="ALIGNMENT";
 
-setStatus(
-"PHOTO FACE OK"
-);
+setStatus("PHOTO FACE OK");
 
-message.innerHTML =
-"<b class='green'>PHOTO FACE OK</b><br>" +
+message.innerHTML=
+"<b class='green'>PHOTO FACE OK</b><br>"+
 "Ảnh mẫu đã sẵn sàng";
 
-message.style.display =
-"block";
+message.style.display="block";
 
-setTimeout(
-()=>{
+setTimeout(()=>{
 message.style.display="none";
-},
-1000
-);
+},1000);
 
 }catch(error){
 
 console.error(error);
 
-setStatus(
-"PHOTO AI ERROR"
-);
+setStatus("PHOTO AI ERROR");
 
 }
 
@@ -891,49 +663,12 @@ w,
 h
 ){
 
-const p =
-landmarks[index];
+const p=landmarks[index];
 
 return{
-
 x:(1-p.x)*w,
-
 y:p.y*h
-
 };
-
-}
-
-
-/* =========================================
-   BUILD MESH
-========================================= */
-
-function buildMesh(
-landmarks,
-w,
-h
-){
-
-const points=[];
-
-for(
-let i=0;
-i<landmarks.length;
-i++
-){
-
-points.push(
-point(
-landmarks,
-i,
-w,
-h
-);
-
-}
-
-return points;
 
 }
 
@@ -947,62 +682,58 @@ s1,s2,s3,
 d1,d2,d3
 ){
 
-const den =
+const den=
 s1.x*(s2.y-s3.y)+
 s2.x*(s3.y-s1.y)+
 s3.x*(s1.y-s2.y);
 
-if(
-Math.abs(den)<0.00001
-){
+if(Math.abs(den)<0.00001){
 return null;
 }
 
-const a =
+const a=
 (
 d1.x*(s2.y-s3.y)+
 d2.x*(s3.y-s1.y)+
 d3.x*(s1.y-s2.y)
 )/den;
 
-const c =
+const c=
 (
 d1.x*(s3.x-s2.x)+
 d2.x*(s1.x-s3.x)+
 d3.x*(s2.x-s1.x)
 )/den;
 
-const e =
+const e=
 (
 d1.x*(s2.x*s3.y-s3.x*s2.y)+
 d2.x*(s3.x*s1.y-s1.x*s3.y)+
 d3.x*(s1.x*s2.y-s2.x*s1.y)
 )/den;
 
-const b =
+const b=
 (
 d1.y*(s2.y-s3.y)+
 d2.y*(s3.y-s1.y)+
 d3.y*(s1.y-s2.y)
 )/den;
 
-const d =
+const d=
 (
 d1.y*(s3.x-s2.x)+
 d2.y*(s1.x-s3.x)+
 d3.y*(s2.x-s1.x)
 )/den;
 
-const f =
+const f=
 (
 d1.y*(s2.x*s3.y-s3.x*s2.y)+
 d2.y*(s3.x*s1.y-s1.x*s3.y)+
 d3.y*(s1.x*s2.y-s2.x*s1.y)
 )/den;
 
-return{
-a,b,c,d,e,f
-};
+return{a,b,c,d,e,f};
 
 }
 
@@ -1018,7 +749,7 @@ d1,d2,d3,
 alpha
 ){
 
-const m =
+const m=
 affine(
 s1,s2,s3,
 d1,d2,d3
@@ -1028,37 +759,20 @@ if(!m)return;
 
 ctx.save();
 
-ctx.globalAlpha =
-alpha;
+ctx.globalAlpha=alpha;
 
 ctx.beginPath();
 
-ctx.moveTo(
-d1.x,
-d1.y
-);
-
-ctx.lineTo(
-d2.x,
-d2.y
-);
-
-ctx.lineTo(
-d3.x,
-d3.y
-);
+ctx.moveTo(d1.x,d1.y);
+ctx.lineTo(d2.x,d2.y);
+ctx.lineTo(d3.x,d3.y);
 
 ctx.closePath();
 
 ctx.clip();
 
 ctx.setTransform(
-m.a,
-m.b,
-m.c,
-m.d,
-m.e,
-m.f
+m.a,m.b,m.c,m.d,m.e,m.f
 );
 
 ctx.drawImage(
@@ -1073,458 +787,109 @@ ctx.restore();
 
 
 /* =========================================
-   CIRCUMCIRCLE
+   SAFE WARP
 ========================================= */
 
-function circumcircle(a,b,c){
-
-const A =
-b.x-a.x;
-
-const B =
-b.y-a.y;
-
-const C =
-c.x-a.x;
-
-const Dd =
-c.y-a.y;
-
-const E =
-A*(a.x+b.x)+
-B*(a.y+b.y);
-
-const F =
-C*(a.x+c.x)+
-Dd*(a.y+c.y);
-
-const G =
-2*(A*(c.y-b.y)-
-B*(c.x-b.x));
-
-if(
-Math.abs(G)<0.000001
-){
-return null;
-}
-
-const cx =
-(Dd*E-B*F)/G;
-
-const cy =
-(A*F-C*E)/G;
-
-const r2 =
-(cx-a.x)*(cx-a.x)+
-(cy-a.y)*(cy-a.y);
-
-return{
-x:cx,
-y:cy,
-r2
-};
-
-}
-
-
-/* =========================================
-   DELAUNAY
-========================================= */
-
-function triangulate(points){
-
-const pts =
-points.map(
-(p,i)=>({
-x:p.x,
-y:p.y,
-i
-})
-);
-
-let minX=Infinity;
-let minY=Infinity;
-let maxX=-Infinity;
-let maxY=-Infinity;
-
-for(
-const p of pts
-){
-
-minX =
-Math.min(minX,p.x);
-
-minY =
-Math.min(minY,p.y);
-
-maxX =
-Math.max(maxX,p.x);
-
-maxY =
-Math.max(maxY,p.y);
-
-}
-
-const dx =
-maxX-minX;
-
-const dy =
-maxY-minY;
-
-const delta =
-Math.max(dx,dy);
-
-const midX =
-(minX+maxX)/2;
-
-const midY =
-(minY+maxY)/2;
-
-const superPts=[
-
-{
-x:midX-delta*20,
-y:midY-delta*20,
-i:-1
-},
-
-{
-x:midX,
-y:midY+delta*20,
-i:-2
-},
-
-{
-x:midX+delta*20,
-y:midY-delta*20,
-i:-3
-}
-
-];
-
-const all =
-pts.concat(superPts);
-
-let triangles=[
-
-[
-pts.length,
-pts.length+1,
-pts.length+2
-]
-
-];
-
-for(
-let pIndex=0;
-pIndex<pts.length;
-pIndex++
-){
-
-const p =
-all[pIndex];
-
-const bad=[];
-
-for(
-const tri of triangles
-){
-
-const a =
-all[tri[0]];
-
-const b =
-all[tri[1]];
-
-const c =
-all[tri[2]];
-
-const circle =
-circumcircle(
-a,b,c
-);
-
-if(!circle)continue;
-
-const dist2 =
-(p.x-circle.x)*
-(p.x-circle.x)+
-(p.y-circle.y)*
-(p.y-circle.y);
-
-if(
-dist2 <=
-circle.r2+0.5
-){
-
-bad.push(tri);
-
-}
-
-}
-
-const edges=[];
-
-for(
-const tri of bad
-){
-
-const e=[
-
-[tri[0],tri[1]],
-[tri[1],tri[2]],
-[tri[2],tri[0]]
-
-];
-
-for(
-const edge of e
-){
-
-const reverse =
-edges.findIndex(
-x =>
-x[0]===edge[1] &&
-x[1]===edge[0]
-);
-
-if(reverse>=0){
-
-edges.splice(
-reverse,
-1
-);
-
-}else{
-
-edges.push(edge);
-
-}
-
-}
-
-}
-
-triangles =
-triangles.filter(
-tri =>
-!bad.includes(tri)
-);
-
-for(
-const edge of edges
-){
-
-triangles.push([
-edge[0],
-edge[1],
-pIndex
-]);
-
-}
-
-}
-
-triangles =
-triangles.filter(
-tri =>
-tri[0]<pts.length &&
-tri[1]<pts.length &&
-tri[2]<pts.length
-);
-
-return triangles;
-
-}
-
-
-/* =========================================
-   FULL FACE MORPH 2.10
-========================================= */
-
-function denseWarp(
-cameraLandmarks
+function faceWarp(
+camera
 ){
 
 if(
-!sourceLandmarks ||
-!mirroredPhoto
+!sourceImage ||
+!sourceLandmarks
 ){
 return;
 }
 
-const sw =
-mirroredPhoto.naturalWidth;
 
-const sh =
-mirroredPhoto.naturalHeight;
+/*
+Source image is kept in the
+same coordinate orientation
+as MediaPipe.
+*/
 
-const S =
-buildMesh(
+const sw=
+sourceImage.naturalWidth;
+
+const sh=
+sourceImage.naturalHeight;
+
+const S=[];
+
+const T=[];
+
+for(
+let i=0;
+i<sourceLandmarks.length;
+i++
+){
+
+S.push(
+point(
 sourceLandmarks,
+i,
 sw,
 sh
+)
 );
 
-const T =
-buildMesh(
-cameraLandmarks,
+T.push(
+point(
+camera,
+i,
 canvas.width,
 canvas.height
 );
 
+}
 
-/* -----------------------------------------
-   EYES
------------------------------------------ */
 
-const sl =
-S[33];
+/*
+Eye geometry.
+*/
 
-const sr =
-S[263];
+const sl=S[33];
+const sr=S[263];
 
-const tl =
-T[33];
+const tl=T[33];
+const tr=T[263];
 
-const tr =
-T[263];
-
-const sourceEye =
+const se=
 Math.hypot(
 sr.x-sl.x,
 sr.y-sl.y
 );
 
-const targetEye =
+const te=
 Math.hypot(
 tr.x-tl.x,
 tr.y-tl.y
 );
 
 if(
-sourceEye<1 ||
-targetEye<1
+se<1 ||
+te<1
 ){
 return;
 }
 
-const scale =
-targetEye/sourceEye;
+const scale=te/se;
 
-const sourceCX =
-(sl.x+sr.x)/2;
+const scx=(sl.x+sr.x)/2;
+const scy=(sl.y+sr.y)/2;
 
-const sourceCY =
-(sl.y+sr.y)/2;
+const tcx=(tl.x+tr.x)/2;
+const tcy=(tl.y+tr.y)/2;
 
-const targetCX =
-(tl.x+tr.x)/2;
-
-const targetCY =
-(tl.y+tr.y)/2;
-
-
-/* -----------------------------------------
-   WARP
------------------------------------------ */
-
-const strength =
+const strength=
 Number(warp.value)/100;
 
-const D=[];
-
-for(
-let i=0;
-i<S.length;
-i++
-){
-
-const s =
-S[i];
-
-const t =
-T[i];
-
-const px =
-targetCX+
-(s.x-sourceCX)*scale;
-
-const py =
-targetCY+
-(s.y-sourceCY)*scale;
-
-const dx =
-t.x-targetCX;
-
-const dy =
-t.y-targetCY;
-
-const dist =
-Math.sqrt(
-dx*dx+dy*dy
-);
-
-const radius =
-targetEye*1.75;
-
-let local =
-1-Math.min(
-1,
-dist/radius
-);
-
-local =
-.35+local*.65;
-
-let x =
-px*(1-strength)+
-t.x*strength;
-
-let y =
-py*(1-strength)+
-t.y*strength;
-
-x =
-t.x*(strength*local*.35)+
-x*(1-strength*local*.35);
-
-y =
-t.y*(strength*local*.35)+
-y*(1-strength*local*.35);
+const D={};
 
 
 /*
-Ổn định mắt và mũi.
+Create target coordinates.
 */
-
-if(
-i===33 ||
-i===263 ||
-i===1
-){
-
-x =
-t.x*.72+x*.28;
-
-y =
-t.y*.72+y*.28;
-
-}
-
-D.push({
-x,
-y
-});
-
-}
-
-
-/* -----------------------------------------
-   FACIAL POINT SELECTION
------------------------------------------ */
-
-const indices=[];
 
 for(
 let i=0;
@@ -1532,64 +897,119 @@ i<S.length;
 i++
 ){
 
-if(i%2===0){
-indices.push(i);
-}
+const s=S[i];
+const t=T[i];
+
+const predicted={
+
+x:
+tcx+(s.x-scx)*scale,
+
+y:
+tcy+(s.y-scy)*scale
+
+};
+
+D[i]={
+
+x:
+predicted.x*(1-strength)+
+t.x*strength,
+
+y:
+predicted.y*(1-strength)+
+t.y*strength
+
+};
 
 }
 
-const sourcePoints =
-indices.map(
-i=>S[i]
-);
 
-const targetPoints =
-indices.map(
-i=>D[i]
-);
+/*
+Important facial landmarks.
+*/
 
+const tri=[
 
-/* -----------------------------------------
-   TRIANGULATE
------------------------------------------ */
+/* forehead */
 
-const triangles =
-triangulate(
-targetPoints
-);
+[10,33,234],
+[10,234,93],
+[10,93,109],
+[10,109,338],
+[10,338,297],
+[10,297,454],
+[10,454,263],
 
+/* eyes */
 
-/* -----------------------------------------
-   DRAW
------------------------------------------ */
+[33,160,1],
+[160,158,1],
+[158,133,1],
 
-const alpha =
+[263,385,1],
+[385,362,1],
+[362,387,1],
+
+/* cheeks */
+
+[234,93,132],
+[93,162,132],
+[132,58,172],
+
+[454,323,361],
+[323,327,361],
+[361,288,397],
+
+/* nose */
+
+[33,1,234],
+[263,454,1],
+
+/* mouth */
+
+[61,91,1],
+[91,181,1],
+[181,84,17],
+
+[314,405,291],
+[405,321,291],
+[291,17,314],
+
+/* lower face */
+
+[61,152,234],
+[291,454,152],
+
+[152,234,172],
+[152,172,397],
+[152,397,454]
+
+];
+
+const alpha=
 Number(blend.value)/100;
 
+
+/*
+Draw triangles.
+*/
+
 for(
-const tri of triangles
+const q of tri
 ){
-
-const ia =
-indices[tri[0]];
-
-const ib =
-indices[tri[1]];
-
-const ic =
-indices[tri[2]];
 
 drawTriangle(
 
-mirroredPhoto,
+sourceImage,
 
-S[ia],
-S[ib],
-S[ic],
+S[q[0]],
+S[q[1]],
+S[q[2]],
 
-D[ia],
-D[ib],
-D[ic],
+D[q[0]],
+D[q[1]],
+D[q[2]],
 
 alpha
 
@@ -1598,13 +1018,11 @@ alpha
 }
 
 
-/* -----------------------------------------
-   FEATHER
------------------------------------------ */
+/*
+Soft edge.
+*/
 
-applyFeather(
-cameraLandmarks
-);
+applyFeather(camera);
 
 }
 
@@ -1617,90 +1035,51 @@ function applyFeather(
 landmarks
 ){
 
-const values =
-landmarks.map(
-p=>({
+let minX=canvas.width;
+let minY=canvas.height;
 
-x:(1-p.x)*
-canvas.width,
-
-y:p.y*
-canvas.height
-
-})
-);
-
-let minX =
-canvas.width;
-
-let maxX = 0;
-
-let minY =
-canvas.height;
-
-let maxY = 0;
+let maxX=0;
+let maxY=0;
 
 for(
-const p of values
+const p of landmarks
 ){
 
-minX =
-Math.min(
-minX,
-p.x
-);
+const x=
+(1-p.x)*canvas.width;
 
-maxX =
-Math.max(
-maxX,
-p.x
-);
+const y=
+p.y*canvas.height;
 
-minY =
-Math.min(
-minY,
-p.y
-);
+minX=Math.min(minX,x);
+minY=Math.min(minY,y);
 
-maxY =
-Math.max(
-maxY,
-p.y
-);
+maxX=Math.max(maxX,x);
+maxY=Math.max(maxY,y);
 
 }
 
-const cx =
-(minX+maxX)/2;
+const cx=(minX+maxX)/2;
+const cy=(minY+maxY)/2;
 
-const cy =
-(minY+maxY)/2;
+const rx=(maxX-minX)*.56;
+const ry=(maxY-minY)*.58;
 
-const rx =
-(maxX-minX)*.55;
-
-const ry =
-(maxY-minY)*.57;
-
-const amount =
+const amount=
 Number(feather.value)/100;
 
 ctx.save();
 
-ctx.globalCompositeOperation =
+ctx.globalCompositeOperation=
 "destination-out";
 
-const g =
+const g=
 ctx.createRadialGradient(
 
-cx,
-cy,
-
+cx,cy,
 Math.min(rx,ry)*.60,
 
-cx,
-cy,
-
+cx,cy,
 Math.max(rx,ry)
 
 );
@@ -1716,13 +1095,13 @@ g.addColorStop(
 );
 
 g.addColorStop(
-.84,
-`rgba(0,0,0,${.24*amount})`
+.86,
+`rgba(0,0,0,${.22*amount})`
 );
 
 g.addColorStop(
-.93,
-`rgba(0,0,0,${.72*amount})`
+.94,
+`rgba(0,0,0,${.65*amount})`
 );
 
 g.addColorStop(
@@ -1730,8 +1109,7 @@ g.addColorStop(
 "rgba(0,0,0,1)"
 );
 
-ctx.fillStyle =
-g;
+ctx.fillStyle=g;
 
 ctx.beginPath();
 
@@ -1753,7 +1131,7 @@ ctx.restore();
 
 
 /* =========================================
-   DRAW RESULT
+   RESULT
 ========================================= */
 
 function drawResult(
@@ -1765,48 +1143,36 @@ ctx.setTransform(
 );
 
 ctx.clearRect(
-0,
-0,
+0,0,
 canvas.width,
 canvas.height
 );
 
-faces.textContent =
-"1";
+faces.textContent="1";
 
 if(
-sourceLandmarks &&
-mirroredPhoto
+sourceImage &&
+sourceLandmarks
 ){
 
-denseWarp(
-landmarks
-);
+faceWarp(landmarks);
 
-photoFaces.textContent =
-"1";
+photoFaces.textContent="1";
+photoState.textContent="ON";
+mode.textContent="FACE WARP";
 
-photoState.textContent =
-"ON";
-
-mode.textContent =
-"FACE MORPH";
-
-setStatus(
-"FACE MORPH OK"
-);
+setStatus("FACE WARP OK");
 
 return;
 
 }
 
 
-/* =========================================
-   TRACKING
-========================================= */
+/*
+Tracking only.
+*/
 
-ctx.fillStyle =
-"#34c759";
+ctx.fillStyle="#34c759";
 
 for(
 let i=0;
@@ -1814,22 +1180,18 @@ i<landmarks.length;
 i+=3
 ){
 
-const p =
-landmarks[i];
+const p=landmarks[i];
 
-const x =
-(1-p.x)*
-canvas.width;
+const x=
+(1-p.x)*canvas.width;
 
-const y =
-p.y*
-canvas.height;
+const y=
+p.y*canvas.height;
 
 ctx.beginPath();
 
 ctx.arc(
-x,
-y,
+x,y,
 1.5,
 0,
 Math.PI*2
@@ -1839,12 +1201,9 @@ ctx.fill();
 
 }
 
-mode.textContent =
-"Tracking";
+mode.textContent="Tracking";
 
-setStatus(
-"FACE MESH OK"
-);
+setStatus("FACE MESH OK");
 
 }
 
@@ -1855,9 +1214,7 @@ setStatus(
 
 function processFrame(now){
 
-if(!running){
-return;
-}
+if(!running)return;
 
 cameraFrames++;
 
@@ -1865,16 +1222,14 @@ if(
 now-fpsTime>=1000
 ){
 
-cameraFPS.textContent =
+cameraFPS.textContent=
 cameraFrames;
 
-aiFPS.textContent =
+aiFPS.textContent=
 aiFrames;
 
 cameraFrames=0;
-
 aiFrames=0;
-
 fpsTime=now;
 
 }
@@ -1885,34 +1240,32 @@ video.readyState>=2 &&
 video.currentTime!==lastVideoTime
 ){
 
-lastVideoTime =
+lastVideoTime=
 video.currentTime;
 
-const t =
+const t=
 performance.now();
 
 try{
 
-const result =
+const result=
 cameraLandmarker.detectForVideo(
 video,
 now
 );
 
-latency.textContent =
+latency.textContent=
 (
 performance.now()-t
 ).toFixed(1);
 
-const detected =
+const detected=
 result.faceLandmarks || [];
 
-faces.textContent =
+faces.textContent=
 detected.length;
 
-if(
-detected.length
-){
+if(detected.length){
 
 drawResult(
 detected[0]
@@ -1921,14 +1274,12 @@ detected[0]
 }else{
 
 ctx.clearRect(
-0,
-0,
+0,0,
 canvas.width,
 canvas.height
 );
 
-faces.textContent =
-"0";
+faces.textContent="0";
 
 setStatus(
 "Đang tìm khuôn mặt..."
@@ -1946,7 +1297,7 @@ error
 );
 
 setStatus(
-"FACE MORPH ERROR"
+"FACE WARP ERROR"
 );
 
 }
@@ -1964,8 +1315,7 @@ processFrame
    START
 ========================================= */
 
-start.onclick =
-async function(){
+start.onclick=async function(){
 
 start.disabled=true;
 
@@ -1981,11 +1331,9 @@ await createImageLandmarker();
 
 running=true;
 
-message.style.display =
-"none";
+message.style.display="none";
 
-start.style.display =
-"none";
+start.style.display="none";
 
 requestAnimationFrame(
 processFrame
@@ -2002,7 +1350,7 @@ setStatus(
 "LỖI: "+error.message
 );
 
-message.innerHTML =
+message.innerHTML=
 
 "<b class='red'>" +
 "FACELIVE ERROR" +
@@ -2010,8 +1358,7 @@ message.innerHTML =
 
 error.message;
 
-message.style.display =
-"block";
+message.style.display="block";
 
 start.disabled=false;
 
