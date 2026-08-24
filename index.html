@@ -9,10 +9,9 @@ initial-scale=1,
 maximum-scale=1,
 viewport-fit=cover">
 
-<title>FaceLive 0.4 TEST</title>
+<title>FaceLive 0.5 Diagnostic</title>
 
 <style>
-
 html,body{
     margin:0;
     padding:0;
@@ -22,6 +21,8 @@ html,body{
     color:#fff;
     font-family:-apple-system,
     BlinkMacSystemFont,
+    "Helvetica Neue",
+    Arial,
     sans-serif;
 }
 
@@ -30,7 +31,7 @@ html,body{
 }
 
 h2{
-    margin-top:20px;
+    margin:20px 0;
 }
 
 button{
@@ -47,19 +48,19 @@ button{
 #status{
     margin-top:20px;
     padding:18px;
-    background:#191919;
+    background:#181818;
     border-radius:15px;
+    line-height:1.7;
     white-space:pre-wrap;
-    line-height:1.6;
 }
 
-video{
+#video{
     display:none;
     width:100%;
     margin-top:20px;
     border-radius:15px;
+    background:#111;
 }
-
 </style>
 </head>
 
@@ -67,14 +68,14 @@ video{
 
 <div id="app">
 
-<h2>FaceLive 0.4</h2>
+<h2>FaceLive 0.5</h2>
 
-<button id="button">
-TEST CAMERA
+<button id="start">
+START CAMERA
 </button>
 
 <div id="status">
-Chưa kiểm tra
+CHƯA KIỂM TRA
 </div>
 
 <video
@@ -86,11 +87,12 @@ muted>
 
 </div>
 
-
 <script>
 
+(function(){
+
 var button =
-document.getElementById("button");
+document.getElementById("start");
 
 var status =
 document.getElementById("status");
@@ -99,27 +101,41 @@ var video =
 document.getElementById("video");
 
 
-function log(text){
+function setStatus(text){
 
-status.textContent = text;
+status.innerHTML = text;
 
 }
 
 
-button.onclick = function(){
+/*
+================================
+STEP 1
+================================
+*/
 
-log(
-"① JAVASCRIPT ĐÃ CHẠY\n\n" +
-"Đang kiểm tra camera..."
+button.addEventListener(
+"click",
+function(){
+
+setStatus(
+"① JAVASCRIPT OK\n\n" +
+"Đang kiểm tra Camera API..."
 );
 
+
+/*
+================================
+STEP 2
+================================
+*/
 
 if(
 !navigator.mediaDevices
 ){
 
-log(
-"❌ Không có navigator.mediaDevices"
+setStatus(
+"❌ CAMERA API KHÔNG TỒN TẠI"
 );
 
 return;
@@ -131,8 +147,8 @@ if(
 !navigator.mediaDevices.getUserMedia
 ){
 
-log(
-"❌ Không có getUserMedia"
+setStatus(
+"❌ getUserMedia KHÔNG TỒN TẠI"
 );
 
 return;
@@ -140,16 +156,31 @@ return;
 }
 
 
+setStatus(
+"② CAMERA API OK\n\n" +
+"Đang xin quyền camera..."
+);
+
+
+/*
+================================
+STEP 3
+================================
+*/
+
 navigator.mediaDevices
 .getUserMedia({
 
-video:true,
+video:{
+facingMode:"user"
+},
 
 audio:false
 
 })
 
-.then(function(stream){
+.then(
+function(stream){
 
 video.srcObject =
 stream;
@@ -157,21 +188,33 @@ stream;
 video.style.display =
 "block";
 
-log(
-"② CAMERA OK\n\n" +
+
+return video.play();
+
+})
+
+.then(
+function(){
+
+setStatus(
+
+"③ CAMERA OK\n\n" +
 
 "JavaScript: OK\n" +
 
 "Camera API: OK\n\n" +
 
 "FaceLive có thể tiếp tục."
+
 );
 
 })
 
-.catch(function(error){
+.catch(
+function(error){
 
-log(
+setStatus(
+
 "❌ CAMERA ERROR\n\n" +
 
 "Name: " +
@@ -179,11 +222,14 @@ error.name +
 
 "\n\nMessage: " +
 error.message
+
 );
 
 });
 
-};
+});
+
+})();
 
 </script>
 
