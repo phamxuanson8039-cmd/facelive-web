@@ -1,22 +1,18 @@
 ```html
 <!doctype html>
 <html lang="vi">
-
 <head>
-
 <meta charset="utf-8">
 
 <meta name="viewport"
 content="width=device-width,initial-scale=1,
 maximum-scale=1,viewport-fit=cover">
 
-<title>FaceLive 2.6</title>
+<title>FaceLive 2.7</title>
 
 <style>
 
-*{
-box-sizing:border-box
-}
+*{box-sizing:border-box}
 
 html,body{
 margin:0;
@@ -53,7 +49,6 @@ top:15px;
 left:12px;
 right:12px;
 z-index:10;
-
 display:flex;
 justify-content:space-between;
 align-items:flex-start
@@ -118,78 +113,52 @@ color:#fff;
 font-size:15px
 }
 
-#photoPreview{
-display:none;
-
-position:fixed;
-
-right:12px;
-bottom:205px;
-
-width:110px;
-height:140px;
-
-object-fit:cover;
-
-border-radius:14px;
-
-border:2px solid #34c759;
-
-z-index:25
-}
-
-#message{
-position:fixed;
-
-top:50%;
-left:20px;
-right:20px;
-
-transform:translateY(-50%);
-
-text-align:center;
-
-font-size:16px;
-line-height:1.6;
-
-z-index:5
-}
-
 #blendBox{
 display:none;
-
 background:rgba(0,0,0,.70);
-
 border-radius:14px;
-
 padding:10px;
-
-margin-top:8px
+margin-top:8px;
+font-size:13px
 }
 
 #blend{
 width:100%
 }
 
-.green{
-color:#34c759
+#photoPreview{
+display:none;
+position:fixed;
+right:12px;
+bottom:215px;
+width:100px;
+height:125px;
+object-fit:cover;
+border-radius:14px;
+border:2px solid #34c759;
+z-index:25
 }
 
-.yellow{
-color:#ffcc00
+#message{
+position:fixed;
+top:50%;
+left:20px;
+right:20px;
+transform:translateY(-50%);
+text-align:center;
+font-size:16px;
+line-height:1.6;
+z-index:5
 }
 
-.red{
-color:#ff453a
-}
+.green{color:#34c759}
+.yellow{color:#ffcc00}
+.red{color:#ff453a}
 
 </style>
-
 </head>
 
-
 <body>
-
 
 <video
 id="video"
@@ -198,44 +167,29 @@ playsinline
 muted>
 </video>
 
-
 <canvas id="canvas"></canvas>
-
 
 <img
 id="photoPreview"
 alt="Ảnh mẫu">
 
-
 <div id="message">
 
-<b>
-FaceLive 2.6
-</b>
-
-<br>
+<b>FaceLive 2.7</b><br>
 
 <span style="opacity:.7">
-Mirror Corrected Face Alignment
+Realtime Face Warp
 </span>
 
 </div>
 
-
 <div id="top">
 
-<div
-id="title"
-class="panel">
-
-FaceLive 2.6
-
+<div id="title" class="panel">
+FaceLive 2.7
 </div>
 
-
-<div
-id="stats"
-class="panel">
+<div id="stats" class="panel">
 
 Camera:
 <b id="cameraFPS">--</b> FPS
@@ -274,18 +228,11 @@ Mode:
 
 </div>
 
-
 <div id="bottom">
 
-
-<div
-id="status"
-class="panel">
-
+<div id="status" class="panel">
 ● Chưa khởi động
-
 </div>
-
 
 <button
 id="start"
@@ -295,27 +242,23 @@ START FACELIVE
 
 </button>
 
-
 <input
 id="photoInput"
 type="file"
 accept="image/*">
 
+<div id="blendBox">
 
-<div
-id="blendBox">
-
-Độ hòa trộn:
+Blend / mức hòa trộn:
 
 <input
 id="blend"
 type="range"
 min="0"
 max="100"
-value="65">
+value="78">
 
 </div>
-
 
 </div>
 
@@ -331,17 +274,7 @@ let FaceLandmarker = null;
 
 let FilesetResolver = null;
 
-
-/*
-Camera AI.
-*/
-
 let cameraLandmarker = null;
-
-
-/*
-Photo AI.
-*/
 
 let imageLandmarker = null;
 
@@ -419,24 +352,9 @@ let aiFrames = 0;
 let fpsTime =
 performance.now();
 
-
-/*
-Ảnh gốc.
-*/
-
 let sourceImage = null;
 
-
-/*
-Ảnh đã mirror.
-*/
-
 let mirroredPhoto = null;
-
-
-/*
-Landmark của ảnh mirror.
-*/
 
 let sourceLandmarks = null;
 
@@ -454,81 +372,7 @@ status.textContent =
 
 
 /* =========================================
-   CREATE MIRRORED PHOTO
-========================================= */
-
-function createMirroredPhoto(){
-
-if(!sourceImage){
-
-return;
-
-}
-
-
-const c =
-document.createElement("canvas");
-
-
-c.width =
-sourceImage.naturalWidth;
-
-c.height =
-sourceImage.naturalHeight;
-
-
-const cctx =
-c.getContext("2d");
-
-
-/*
-Lật ảnh theo chiều ngang.
-*/
-
-cctx.save();
-
-cctx.translate(
-c.width,
-0
-);
-
-cctx.scale(
--1,
-1
-);
-
-cctx.drawImage(
-sourceImage,
-0,
-0
-);
-
-cctx.restore();
-
-
-/*
-Image object từ canvas.
-*/
-
-const img =
-new Image();
-
-
-img.src =
-c.toDataURL(
-"image/jpeg",
-.95
-);
-
-
-mirroredPhoto =
-img;
-
-}
-
-
-/* =========================================
-   LOAD MEDIAPIPE
+   MEDIAPIPE
 ========================================= */
 
 async function loadMediaPipe(){
@@ -537,21 +381,16 @@ setStatus(
 "Đang tải MediaPipe..."
 );
 
-
 const module =
 await import(
-
 "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.0.1/+esm"
-
 );
-
 
 FaceLandmarker =
 module.FaceLandmarker;
 
 FilesetResolver =
 module.FilesetResolver;
-
 
 if(
 !FaceLandmarker ||
@@ -564,7 +403,6 @@ throw new Error(
 
 }
 
-
 setStatus(
 "MediaPipe JavaScript OK"
 );
@@ -573,7 +411,78 @@ setStatus(
 
 
 /* =========================================
-   CAMERA LANDMARKER
+   CAMERA
+========================================= */
+
+async function startCamera(){
+
+setStatus(
+"Đang mở camera..."
+);
+
+if(
+!navigator.mediaDevices ||
+!navigator.mediaDevices.getUserMedia
+){
+
+throw new Error(
+"Camera API không được hỗ trợ"
+);
+
+}
+
+stream =
+await navigator.mediaDevices.getUserMedia({
+
+audio:false,
+
+video:{
+facingMode:"user",
+
+width:{ideal:1280},
+
+height:{ideal:720},
+
+frameRate:{ideal:30}
+}
+
+});
+
+video.srcObject =
+stream;
+
+await video.play();
+
+await new Promise(resolve=>{
+
+if(video.videoWidth>0){
+
+resolve();
+
+}else{
+
+video.onloadedmetadata =
+resolve;
+
+}
+
+});
+
+canvas.width =
+video.videoWidth;
+
+canvas.height =
+video.videoHeight;
+
+setStatus(
+"CAMERA OK"
+);
+
+}
+
+
+/* =========================================
+   CAMERA AI
 ========================================= */
 
 async function createCameraLandmarker(){
@@ -582,14 +491,12 @@ setStatus(
 "Đang khởi tạo Camera Face Mesh..."
 );
 
-
 const vision =
 await FilesetResolver.forVisionTasks(
 
 "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.0.1/wasm"
 
 );
-
 
 cameraLandmarker =
 await FaceLandmarker.createFromOptions(
@@ -626,7 +533,6 @@ outputFacialTransformationMatrixes:true
 
 );
 
-
 setStatus(
 "CAMERA FACEMESH OK"
 );
@@ -635,7 +541,7 @@ setStatus(
 
 
 /* =========================================
-   IMAGE LANDMARKER
+   PHOTO AI
 ========================================= */
 
 async function createImageLandmarker(){
@@ -644,14 +550,12 @@ setStatus(
 "Đang khởi tạo Photo Face AI..."
 );
 
-
 const vision =
 await FilesetResolver.forVisionTasks(
 
 "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.0.1/wasm"
 
 );
-
 
 imageLandmarker =
 await FaceLandmarker.createFromOptions(
@@ -688,7 +592,6 @@ outputFacialTransformationMatrixes:true
 
 );
 
-
 setStatus(
 "PHOTO FACE AI OK"
 );
@@ -697,90 +600,61 @@ setStatus(
 
 
 /* =========================================
-   CAMERA
+   MIRROR PHOTO
 ========================================= */
 
-async function startCamera(){
+function createMirroredPhoto(){
+
+if(!sourceImage)return;
+
+const c =
+document.createElement("canvas");
+
+c.width =
+sourceImage.naturalWidth;
+
+c.height =
+sourceImage.naturalHeight;
+
+const cctx =
+c.getContext("2d");
+
+cctx.save();
+
+cctx.translate(
+c.width,
+0
+);
+
+cctx.scale(
+-1,
+1
+);
+
+cctx.drawImage(
+sourceImage,
+0,
+0
+);
+
+cctx.restore();
+
+mirroredPhoto =
+new Image();
+
+mirroredPhoto.onload =
+function(){
 
 setStatus(
-"Đang mở camera..."
+"PHOTO MIRROR OK"
 );
 
+};
 
-if(
-!navigator.mediaDevices ||
-!navigator.mediaDevices.getUserMedia
-){
-
-throw new Error(
-"Camera API không được hỗ trợ"
-);
-
-}
-
-
-stream =
-await navigator.mediaDevices.getUserMedia({
-
-audio:false,
-
-video:{
-
-facingMode:"user",
-
-width:{
-ideal:1280
-},
-
-height:{
-ideal:720
-},
-
-frameRate:{
-ideal:30
-}
-
-}
-
-});
-
-
-video.srcObject =
-stream;
-
-
-await video.play();
-
-
-await new Promise(
-resolve => {
-
-if(
-video.videoWidth > 0
-){
-
-resolve();
-
-}else{
-
-video.onloadedmetadata =
-resolve;
-
-}
-
-}
-);
-
-
-canvas.width =
-video.videoWidth;
-
-canvas.height =
-video.videoHeight;
-
-
-setStatus(
-"CAMERA OK"
+mirroredPhoto.src =
+c.toDataURL(
+"image/jpeg",
+.95
 );
 
 }
@@ -792,40 +666,19 @@ setStatus(
 
 photoInput.addEventListener(
 "change",
-async function(event){
+async event=>{
 
 const file =
 event.target.files &&
 event.target.files[0];
 
-
-if(!file){
-
-return;
-
-}
-
-
-if(
-!file.type.startsWith("image/")
-){
-
-setStatus(
-"File không phải ảnh"
-);
-
-return;
-
-}
-
+if(!file)return;
 
 const url =
 URL.createObjectURL(file);
 
-
 const img =
 new Image();
-
 
 img.onload =
 async function(){
@@ -833,48 +686,24 @@ async function(){
 sourceImage =
 img;
 
-
-/*
-Tạo bản mirror.
-*/
-
-createMirroredPhoto();
-
-
 photoPreview.src =
 url;
 
 photoPreview.style.display =
 "block";
 
-
 photoState.textContent =
 "ON";
 
-
-setStatus(
-"Ảnh đã tải"
-);
-
-
-/*
-Nếu AI đã sẵn sàng.
-*/
+createMirroredPhoto();
 
 if(imageLandmarker){
 
 await detectPhotoFace();
 
-}else{
-
-setStatus(
-"Ảnh OK - chờ AI"
-);
-
 }
 
 };
-
 
 img.onerror =
 function(){
@@ -885,7 +714,6 @@ setStatus(
 
 };
 
-
 img.src =
 url;
 
@@ -894,119 +722,41 @@ url;
 
 
 /* =========================================
-   PHOTO POINT
-========================================= */
-
-function photoPoint(
-landmarks,
-index,
-width,
-height
-){
-
-const p =
-landmarks[index];
-
-
-/*
-Vì ảnh đã mirror,
-X cũng mirror.
-*/
-
-return {
-
-x:
-(1-p.x)*width,
-
-y:
-p.y*height
-
-};
-
-}
-
-
-/* =========================================
-   CAMERA POINT
-========================================= */
-
-function cameraPoint(
-landmarks,
-index
-){
-
-const p =
-landmarks[index];
-
-
-return {
-
-x:
-(1-p.x)*
-canvas.width,
-
-y:
-p.y*
-canvas.height
-
-};
-
-}
-
-
-/* =========================================
-   DETECT PHOTO FACE
+   PHOTO FACE
 ========================================= */
 
 async function detectPhotoFace(){
 
 if(
 !sourceImage ||
-!imageLandmarker ||
-!mirroredPhoto
+!imageLandmarker
 ){
 
 return;
 
 }
 
-
 setStatus(
 "Đang nhận diện mặt ảnh..."
 );
 
-
 try{
-
-
-/*
-Nhận diện trên ảnh GỐC.
-
-Sau đó chuyển landmark
-sang hệ tọa độ mirror.
-*/
 
 const result =
 imageLandmarker.detect(
 sourceImage
 );
 
-
 const detected =
 result.faceLandmarks || [];
-
 
 photoFaces.textContent =
 detected.length;
 
-
-if(
-detected.length === 0
-){
+if(!detected.length){
 
 sourceLandmarks =
 null;
-
 
 setStatus(
 "KHÔNG THẤY MẶT TRONG ẢNH"
@@ -1016,67 +766,36 @@ return;
 
 }
 
-
-/*
-Giữ landmark gốc.
-
-photoPoint() sẽ mirror X.
-*/
-
 sourceLandmarks =
 detected[0];
-
 
 blendBox.style.display =
 "block";
 
-
 mode.textContent =
-"Photo Ready";
-
+"ALIGNMENT";
 
 setStatus(
 "PHOTO FACE OK"
 );
 
-
 message.innerHTML =
-
-"<b class='green'>" +
-
-"PHOTO FACE OK" +
-
-"</b><br>" +
-
-"Ảnh đã được mirror đúng";
-
+"<b class='green'>PHOTO FACE OK</b><br>" +
+"Đã căn chỉnh ảnh mẫu";
 
 message.style.display =
 "block";
 
-
 setTimeout(
 ()=>{
-
-message.style.display =
-"none";
-
+message.style.display="none";
 },
-1600
+1200
 );
-
 
 }catch(error){
 
-console.error(
-"PHOTO AI:",
-error
-);
-
-
-sourceLandmarks =
-null;
-
+console.error(error);
 
 setStatus(
 "PHOTO AI ERROR"
@@ -1088,10 +807,197 @@ setStatus(
 
 
 /* =========================================
-   DRAW ALIGNMENT
+   POINTS
 ========================================= */
 
-function drawAlignment(
+function camPoint(
+landmarks,
+index
+){
+
+const p =
+landmarks[index];
+
+return{
+
+x:(1-p.x)*canvas.width,
+
+y:p.y*canvas.height
+
+};
+
+}
+
+
+function photoPoint(
+landmarks,
+index,
+w,
+h
+){
+
+const p =
+landmarks[index];
+
+return{
+
+x:(1-p.x)*w,
+
+y:p.y*h
+
+};
+
+}
+
+
+/* =========================================
+   AFFINE TRANSFORM
+========================================= */
+
+function affine(
+s1,s2,s3,
+d1,d2,d3
+){
+
+const den =
+
+s1.x*(s2.y-s3.y)+
+s2.x*(s3.y-s1.y)+
+s3.x*(s1.y-s2.y);
+
+if(
+Math.abs(den)<0.00001
+){
+
+return null;
+
+}
+
+const a = (
+
+d1.x*(s2.y-s3.y)+
+d2.x*(s3.y-s1.y)+
+d3.x*(s1.y-s2.y)
+
+)/den;
+
+const c = (
+
+d1.x*(s3.x-s2.x)+
+d2.x*(s1.x-s3.x)+
+d3.x*(s2.x-s1.x)
+
+)/den;
+
+const e = (
+
+d1.x*(s2.x*s3.y-s3.x*s2.y)+
+d2.x*(s3.x*s1.y-s1.x*s3.y)+
+d3.x*(s1.x*s2.y-s2.x*s1.y)
+
+)/den;
+
+const b = (
+
+d1.y*(s2.y-s3.y)+
+d2.y*(s3.y-s1.y)+
+d3.y*(s1.y-s2.y)
+
+)/den;
+
+const d = (
+
+d1.y*(s3.x-s2.x)+
+d2.y*(s1.x-s3.x)+
+d3.y*(s2.x-s1.x)
+
+)/den;
+
+const f = (
+
+d1.y*(s2.x*s3.y-s3.x*s2.y)+
+d2.y*(s3.x*s1.y-s1.x*s3.y)+
+d3.y*(s1.x*s2.y-s2.x*s1.y)
+
+)/den;
+
+return{
+a,b,c,d,e,f
+};
+
+}
+
+
+/* =========================================
+   TRIANGLE
+========================================= */
+
+function drawTriangle(
+image,
+s1,s2,s3,
+d1,d2,d3,
+alpha
+){
+
+const m =
+affine(
+s1,s2,s3,
+d1,d2,d3
+);
+
+if(!m)return;
+
+ctx.save();
+
+ctx.globalAlpha =
+alpha;
+
+ctx.beginPath();
+
+ctx.moveTo(
+d1.x,
+d1.y
+);
+
+ctx.lineTo(
+d2.x,
+d2.y
+);
+
+ctx.lineTo(
+d3.x,
+d3.y
+);
+
+ctx.closePath();
+
+ctx.clip();
+
+ctx.setTransform(
+m.a,
+m.b,
+m.c,
+m.d,
+m.e,
+m.f
+);
+
+ctx.drawImage(
+image,
+0,
+0
+);
+
+ctx.restore();
+
+}
+
+
+/* =========================================
+   FACE WARP
+========================================= */
+
+function faceWarp(
 landmarks
 ){
 
@@ -1104,56 +1010,6 @@ return;
 
 }
 
-
-/*
-=========================================
-CAMERA
-=========================================
-*/
-
-const cLeftEye =
-cameraPoint(
-landmarks,
-33
-);
-
-const cRightEye =
-cameraPoint(
-landmarks,
-263
-);
-
-const cNose =
-cameraPoint(
-landmarks,
-1
-);
-
-const cLeftMouth =
-cameraPoint(
-landmarks,
-61
-);
-
-const cRightMouth =
-cameraPoint(
-landmarks,
-291
-);
-
-const cChin =
-cameraPoint(
-landmarks,
-152
-);
-
-
-/*
-=========================================
-MIRRORED PHOTO
-=========================================
-*/
-
 const sw =
 mirroredPhoto.naturalWidth;
 
@@ -1161,311 +1017,254 @@ const sh =
 mirroredPhoto.naturalHeight;
 
 
-const sLeftEye =
-photoPoint(
-sourceLandmarks,
-33,
-sw,
-sh
-);
+/*
+SOURCE
+*/
 
-const sRightEye =
-photoPoint(
-sourceLandmarks,
-263,
-sw,
-sh
-);
+const S = {
 
-const sNose =
-photoPoint(
-sourceLandmarks,
-1,
-sw,
-sh
-);
+forehead:
+photoPoint(sourceLandmarks,10,sw,sh),
 
-const sLeftMouth =
-photoPoint(
-sourceLandmarks,
-61,
-sw,
-sh
-);
+leftEye:
+photoPoint(sourceLandmarks,33,sw,sh),
 
-const sRightMouth =
-photoPoint(
-sourceLandmarks,
-291,
-sw,
-sh
-);
+rightEye:
+photoPoint(sourceLandmarks,263,sw,sh),
 
-const sChin =
-photoPoint(
-sourceLandmarks,
-152,
-sw,
-sh
-);
+leftFace:
+photoPoint(sourceLandmarks,234,sw,sh),
+
+rightFace:
+photoPoint(sourceLandmarks,454,sw,sh),
+
+nose:
+photoPoint(sourceLandmarks,1,sw,sh),
+
+leftMouth:
+photoPoint(sourceLandmarks,61,sw,sh),
+
+rightMouth:
+photoPoint(sourceLandmarks,291,sw,sh),
+
+chin:
+photoPoint(sourceLandmarks,152,sw,sh)
+
+};
 
 
 /*
-=========================================
-EYE DISTANCE
-=========================================
+TARGET
 */
 
-const sourceDX =
-sRightEye.x -
-sLeftEye.x;
+const T = {
 
-const sourceDY =
-sRightEye.y -
-sLeftEye.y;
+forehead:
+camPoint(landmarks,10),
+
+leftEye:
+camPoint(landmarks,33),
+
+rightEye:
+camPoint(landmarks,263),
+
+leftFace:
+camPoint(landmarks,234),
+
+rightFace:
+camPoint(landmarks,454),
+
+nose:
+camPoint(landmarks,1),
+
+leftMouth:
+camPoint(landmarks,61),
+
+rightMouth:
+camPoint(landmarks,291),
+
+chin:
+camPoint(landmarks,152)
+
+};
 
 
-const cameraDX =
-cRightEye.x -
-cLeftEye.x;
+/*
+Một chút mở rộng
+để tránh viền cứng.
+*/
 
-const cameraDY =
-cRightEye.y -
-cLeftEye.y;
-
-
-const sourceDistance =
+const eyeDist =
 Math.hypot(
-sourceDX,
-sourceDY
+T.rightEye.x-T.leftEye.x,
+T.rightEye.y-T.leftEye.y
 );
 
+const expand =
+eyeDist*.08;
 
-const cameraDistance =
-Math.hypot(
-cameraDX,
-cameraDY
-);
+T.leftFace.x -= expand;
 
+T.rightFace.x += expand;
 
-if(
-sourceDistance < 1 ||
-cameraDistance < 1
-){
+T.forehead.y -= expand*.35;
 
-return;
-
-}
+T.chin.y += expand*.25;
 
 
 /*
-=========================================
-SCALE
-=========================================
+Blend.
 */
 
-const scale =
-cameraDistance /
-sourceDistance;
-
-
-/*
-=========================================
-ANGLE
-=========================================
-*/
-
-const sourceAngle =
-Math.atan2(
-sourceDY,
-sourceDX
-);
-
-const cameraAngle =
-Math.atan2(
-cameraDY,
-cameraDX
-);
-
-
-const angle =
-cameraAngle -
-sourceAngle;
-
-
-const cos =
-Math.cos(angle);
-
-const sin =
-Math.sin(angle);
-
-
-/*
-=========================================
-CENTERS
-=========================================
-*/
-
-const sourceCenterX =
-(
-sLeftEye.x+
-sRightEye.x
-)/2;
-
-const sourceCenterY =
-(
-sLeftEye.y+
-sRightEye.y
-)/2;
-
-
-const cameraCenterX =
-(
-cLeftEye.x+
-cRightEye.x
-)/2;
-
-const cameraCenterY =
-(
-cLeftEye.y+
-cRightEye.y
-)/2;
-
-
-/*
-=========================================
-TRANSLATION
-=========================================
-*/
-
-const tx =
-cameraCenterX -
-scale*
-(
-cos*sourceCenterX -
-sin*sourceCenterY
-);
-
-
-const ty =
-cameraCenterY -
-scale*
-(
-sin*sourceCenterX +
-cos*sourceCenterY
-);
-
-
-/*
-=========================================
-FACE MASK
-=========================================
-*/
-
-const faceWidth =
-cameraDistance*2.5;
-
-const faceHeight =
-cameraDistance*3.2;
-
-
-ctx.save();
-
-
-ctx.globalAlpha =
+const alpha =
 Number(blend.value)/100;
 
 
-ctx.beginPath();
-
-
-ctx.ellipse(
-
-cameraCenterX,
-
-cameraCenterY+
-cameraDistance*.38,
-
-faceWidth/2,
-
-faceHeight/2,
-
-angle,
-
-0,
-Math.PI*2
-
-);
-
-
-ctx.clip();
-
-
 /*
 =========================================
-DRAW MIRRORED PHOTO
+8 TRIANGLES
 =========================================
 */
 
-ctx.setTransform(
-
-scale*cos,
-
-scale*sin,
-
--scale*sin,
-
-scale*cos,
-
-tx,
-
-ty
-
-);
-
-
-ctx.drawImage(
+drawTriangle(
 mirroredPhoto,
-0,
-0
+
+S.forehead,
+S.leftEye,
+S.leftFace,
+
+T.forehead,
+T.leftEye,
+T.leftFace,
+
+alpha
 );
 
+drawTriangle(
+mirroredPhoto,
 
-ctx.restore();
+S.forehead,
+S.rightFace,
+S.rightEye,
+
+T.forehead,
+T.rightFace,
+T.rightEye,
+
+alpha
+);
+
+drawTriangle(
+mirroredPhoto,
+
+S.leftEye,
+S.nose,
+S.leftFace,
+
+T.leftEye,
+T.nose,
+T.leftFace,
+
+alpha
+);
+
+drawTriangle(
+mirroredPhoto,
+
+S.nose,
+S.rightEye,
+S.rightFace,
+
+T.nose,
+T.rightEye,
+T.rightFace,
+
+alpha
+);
+
+drawTriangle(
+mirroredPhoto,
+
+S.nose,
+S.leftMouth,
+S.leftFace,
+
+T.nose,
+T.leftMouth,
+T.leftFace,
+
+alpha
+);
+
+drawTriangle(
+mirroredPhoto,
+
+S.nose,
+S.rightFace,
+S.rightMouth,
+
+T.nose,
+T.rightFace,
+T.rightMouth,
+
+alpha
+);
+
+drawTriangle(
+mirroredPhoto,
+
+S.leftMouth,
+S.chin,
+S.leftFace,
+
+T.leftMouth,
+T.chin,
+T.leftFace,
+
+alpha
+);
+
+drawTriangle(
+mirroredPhoto,
+
+S.chin,
+S.rightMouth,
+S.rightFace,
+
+T.chin,
+T.rightMouth,
+T.rightFace,
+
+alpha
+);
 
 
 /*
 =========================================
-YELLOW NOSE
+CENTER FACE
 =========================================
 */
 
-const dx =
-sNose.x -
-sourceCenterX;
+drawTriangle(
+mirroredPhoto,
 
-const dy =
-sNose.y -
-sourceCenterY;
+S.leftEye,
+S.rightEye,
+S.nose,
 
+T.leftEye,
+T.rightEye,
+T.nose,
 
-const yellowX =
-cameraCenterX +
-scale*
-(
-dx*cos -
-dy*sin
+alpha
 );
 
 
-const yellowY =
-cameraCenterY +
-scale*
-(
-dx*sin +
-dy*cos
-);
-
+/*
+=========================================
+YELLOW CONTROL POINTS
+=========================================
+*/
 
 ctx.save();
 
@@ -1476,55 +1275,31 @@ ctx.setTransform(
 ctx.fillStyle =
 "#ffcc00";
 
+const points = [
+T.leftEye,
+T.rightEye,
+T.nose,
+T.leftMouth,
+T.rightMouth
+];
+
+for(
+const p of points
+){
 
 ctx.beginPath();
 
-
 ctx.arc(
-
-yellowX,
-yellowY,
-5,
+p.x,
+p.y,
+2.5,
 0,
 Math.PI*2
-
 );
-
 
 ctx.fill();
 
-
-ctx.restore();
-
-
-/*
-=========================================
-CAMERA NOSE
-=========================================
-*/
-
-ctx.save();
-
-ctx.fillStyle =
-"#34c759";
-
-
-ctx.beginPath();
-
-
-ctx.arc(
-
-cNose.x,
-cNose.y,
-3,
-0,
-Math.PI*2
-
-);
-
-
-ctx.fill();
-
+}
 
 ctx.restore();
 
@@ -1543,7 +1318,6 @@ ctx.setTransform(
 1,0,0,1,0,0
 );
 
-
 ctx.clearRect(
 0,
 0,
@@ -1557,23 +1331,25 @@ sourceLandmarks &&
 mirroredPhoto
 ){
 
-drawAlignment(
+faceWarp(
 landmarks
 );
-
 
 faces.textContent =
 "1";
 
+photoFaces.textContent =
+"1";
+
+photoState.textContent =
+"ON";
 
 mode.textContent =
-"ALIGNMENT";
-
+"FACE WARP";
 
 setStatus(
-"FACE ALIGNMENT OK"
+"FACE WARP OK"
 );
-
 
 return;
 
@@ -1581,37 +1357,29 @@ return;
 
 
 /*
-Không có ảnh:
-mesh xanh.
+Chưa có ảnh:
+hiện mesh xanh.
 */
 
 ctx.fillStyle =
 "#34c759";
 
-
 for(
-
 let i=0;
 i<landmarks.length;
 i+=3
-
 ){
 
 const p =
 landmarks[i];
 
-
 const x =
-(1-p.x)*
-canvas.width;
+(1-p.x)*canvas.width;
 
 const y =
-p.y*
-canvas.height;
-
+p.y*canvas.height;
 
 ctx.beginPath();
-
 
 ctx.arc(
 x,
@@ -1625,10 +1393,8 @@ ctx.fill();
 
 }
 
-
 mode.textContent =
 "Tracking";
-
 
 setStatus(
 "FACE MESH OK"
@@ -1638,23 +1404,17 @@ setStatus(
 
 
 /* =========================================
-   REALTIME LOOP
+   REALTIME
 ========================================= */
 
 function processFrame(now){
 
-if(!running){
-
-return;
-
-}
-
+if(!running)return;
 
 cameraFrames++;
 
-
 if(
-now-fpsTime >= 1000
+now-fpsTime>=1000
 ){
 
 cameraFPS.textContent =
@@ -1663,57 +1423,45 @@ cameraFrames;
 aiFPS.textContent =
 aiFrames;
 
+cameraFrames=0;
 
-cameraFrames = 0;
+aiFrames=0;
 
-aiFrames = 0;
-
-fpsTime = now;
+fpsTime=now;
 
 }
 
 
 if(
-
 cameraLandmarker &&
-video.readyState >= 2 &&
-video.currentTime !== lastVideoTime
-
+video.readyState>=2 &&
+video.currentTime!==lastVideoTime
 ){
 
 lastVideoTime =
 video.currentTime;
 
-
 const t =
 performance.now();
-
 
 try{
 
 const result =
 cameraLandmarker.detectForVideo(
-
 video,
 now
-
 );
 
-
 latency.textContent =
-
 (
 performance.now()-t
 ).toFixed(1);
 
-
 const detected =
 result.faceLandmarks || [];
 
-
 faces.textContent =
 detected.length;
-
 
 if(
 detected.length
@@ -1732,8 +1480,7 @@ canvas.width,
 canvas.height
 );
 
-faces.textContent =
-"0";
+faces.textContent="0";
 
 setStatus(
 "Đang tìm khuôn mặt..."
@@ -1741,24 +1488,22 @@ setStatus(
 
 }
 
-
 aiFrames++;
-
 
 }catch(error){
 
 console.error(
+"FaceLive:",
 error
 );
 
 setStatus(
-"FACE MESH ERROR"
+"FACE WARP ERROR"
 );
 
 }
 
 }
-
 
 requestAnimationFrame(
 processFrame
@@ -1774,43 +1519,17 @@ processFrame
 start.onclick =
 async function(){
 
-start.disabled =
-true;
-
+start.disabled=true;
 
 try{
 
-/*
-1 Camera
-*/
-
 await startCamera();
-
-
-/*
-2 MediaPipe
-*/
 
 await loadMediaPipe();
 
-
-/*
-3 Camera AI
-*/
-
 await createCameraLandmarker();
 
-
-/*
-4 Photo AI
-*/
-
 await createImageLandmarker();
-
-
-/*
-5 Ảnh đã chọn trước
-*/
 
 if(sourceImage){
 
@@ -1820,27 +1539,15 @@ await detectPhotoFace();
 
 }
 
+running=true;
 
-/*
-6 Start
-*/
+message.style.display="none";
 
-running =
-true;
-
-
-message.style.display =
-"none";
-
-
-start.style.display =
-"none";
-
+start.style.display="none";
 
 requestAnimationFrame(
 processFrame
 );
-
 
 }catch(error){
 
@@ -1849,30 +1556,21 @@ console.error(
 error
 );
 
-
 setStatus(
-"LỖI: " +
-error.message
+"LỖI: "+error.message
 );
 
+message.innerHTML=
 
-message.innerHTML =
+"<b class='red'>FACELIVE ERROR</b>" +
 
-"<b class='red'>" +
-
-"FACELIVE ERROR" +
-
-"</b><br><br>" +
+"<br><br>" +
 
 error.message;
 
+message.style.display="block";
 
-message.style.display =
-"block";
-
-
-start.disabled =
-false;
+start.disabled=false;
 
 }
 
@@ -1890,6 +1588,5 @@ setStatus(
 </script>
 
 </body>
-
 </html>
 ```
