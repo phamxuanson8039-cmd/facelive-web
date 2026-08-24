@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="vi">
 <head>
+
 <meta charset="utf-8">
 
 <meta name="viewport"
@@ -9,7 +10,7 @@ initial-scale=1,
 maximum-scale=1,
 viewport-fit=cover">
 
-<title>FaceLive 2.0</title>
+<title>FaceLive 2.1</title>
 
 <style>
 
@@ -65,6 +66,7 @@ left:12px;
 right:12px;
 display:flex;
 justify-content:space-between;
+align-items:flex-start;
 z-index:10;
 }
 
@@ -87,6 +89,11 @@ bottom:15px;
 z-index:20;
 }
 
+#status{
+display:inline-block;
+font-size:14px;
+}
+
 button{
 display:block;
 width:100%;
@@ -100,9 +107,8 @@ font-size:17px;
 font-weight:bold;
 }
 
-#status{
-display:inline-block;
-font-size:14px;
+button:disabled{
+opacity:.5;
 }
 
 #message{
@@ -113,6 +119,7 @@ right:20px;
 transform:translateY(-50%);
 text-align:center;
 font-size:16px;
+line-height:1.6;
 z-index:5;
 }
 
@@ -125,6 +132,7 @@ color:#ff453a;
 }
 
 </style>
+
 </head>
 
 <body>
@@ -140,50 +148,53 @@ muted>
 
 <canvas id="canvas"></canvas>
 
+
 <div id="message">
-<b>FaceLive 2.0</b>
+
+<b>FaceLive 2.1</b>
+
 <br>
+
 <span style="opacity:.7">
 Camera + Face Mesh
 </span>
+
 </div>
 
 
 <div id="top">
 
 <div id="title" class="panel">
-FaceLive 2.0
+FaceLive 2.1
 </div>
 
 <div id="stats" class="panel">
 
 Camera:
-<b id="camera">
---
-</b>
+<b id="cameraFPS">--</b>
 FPS
 
 <br>
 
 AI:
-<b id="ai">
---
-</b>
+<b id="aiFPS">--</b>
 FPS
 
 <br>
 
+Inference:
+<b id="latency">--</b>
+ms
+
+<br>
+
 Faces:
-<b id="faces">
-0
-</b>
+<b id="faces">0</b>
 
 <br>
 
 Resolution:
-<b id="resolution">
---
-</b>
+<b id="resolution">--</b>
 
 </div>
 
@@ -205,11 +216,23 @@ START FACELIVE
 </div>
 
 
-<script>
+<script type="module">
 
-/* =================================================
+/* ==========================================
+   MEDIAPIPE IMPORT
+========================================== */
+
+import {
+    FaceLandmarker,
+    FilesetResolver
+}
+from
+"https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/+esm";
+
+
+/* ==========================================
    ELEMENTS
-================================================= */
+========================================== */
 
 const video =
 document.getElementById("video");
@@ -229,22 +252,25 @@ document.getElementById("status");
 const message =
 document.getElementById("message");
 
-const cameraFPS =
-document.getElementById("camera");
+const cameraFPSElement =
+document.getElementById("cameraFPS");
 
-const aiFPS =
-document.getElementById("ai");
+const aiFPSElement =
+document.getElementById("aiFPS");
 
-const faces =
+const latencyElement =
+document.getElementById("latency");
+
+const facesElement =
 document.getElementById("faces");
 
-const resolution =
+const resolutionElement =
 document.getElementById("resolution");
 
 
-/* =================================================
+/* ==========================================
    STATE
-================================================= */
+========================================== */
 
 let stream = null;
 
@@ -258,12 +284,13 @@ let cameraFrames = 0;
 
 let aiFrames = 0;
 
-let fpsTime = performance.now();
+let fpsStart =
+performance.now();
 
 
-/* =================================================
+/* ==========================================
    STATUS
-================================================= */
+========================================== */
 
 function setStatus(text){
 
@@ -273,9 +300,9 @@ status.textContent =
 }
 
 
-/* =================================================
+/* ==========================================
    CAMERA
-================================================= */
+========================================== */
 
 async function startCamera(){
 
@@ -334,11 +361,11 @@ stream;
 await video.play();
 
 
-await new Promise(resolve => {
+await new Promise(
+resolve => {
 
 if(
-video.videoWidth &&
-video.videoHeight
+video.videoWidth > 0
 ){
 
 resolve();
@@ -360,7 +387,7 @@ canvas.height =
 video.videoHeight;
 
 
-resolution.textContent =
+resolutionElement.textContent =
 video.videoWidth +
 " × " +
 video.videoHeight;
@@ -373,63 +400,80 @@ setStatus(
 }
 
 
-/* =================================================
-   LOAD MEDIAPIPE
-================================================= */
+/* ==========================================
+   LOAD AI
+========================================== */
 
-async function loadMediaPipe(){
+async function loadAI(){
 
 setStatus(
 "Đang tải MediaPipe..."
 );
 
 
-/*
-Không dùng import module nữa.
+const vision =
+await FilesetResolver.forVisionTasks(
 
-Dùng script CDN trực tiếp để tránh
-lỗi module làm chết toàn bộ JavaScript.
-*/
+"https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/wasm"
 
-
-await new Promise(
-(resolve,reject)=>{
-
-const script =
-document.createElement("script");
-
-script.src =
-"https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/wasm/vision_bundle.js";
-
-script.onload =
-resolve;
-
-script.onerror =
-()=>reject(
-new Error(
-"Không tải được MediaPipe"
-)
 );
-
-document.head.appendChild(
-script
-);
-
-});
 
 
 setStatus(
-"MediaPipe JavaScript OK"
+"Đang khởi tạo Face Mesh..."
+);
+
+
+landmarker =
+await FaceLandmarker.createFromOptions(
+
+vision,
+
+{
+
+baseOptions:{
+
+modelAssetPath:
+
+"https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task",
+
+delegate:"GPU"
+
+},
+
+runningMode:"VIDEO",
+
+numFaces:1,
+
+minFaceDetectionConfidence:.5,
+
+minFacePresenceConfidence:.5,
+
+minTrackingConfidence:.5,
+
+outputFaceBlendshapes:true,
+
+outputFacialTransformationMatrixes:true
+
+}
+
+);
+
+
+setStatus(
+"MEDIAPIPE OK"
 );
 
 }
 
 
-/* =================================================
-   NOTE
-================================================= */
+/* ==========================================
+   DRAW FACE MESH
+========================================== */
 
-function showMesh(){
+function drawFaceMesh(
+result
+){
 
 ctx.clearRect(
 0,
@@ -439,47 +483,57 @@ canvas.height
 );
 
 
-/*
-Test overlay.
+const detected =
+result.faceLandmarks || [];
 
-Hiển thị các điểm giả để xác nhận
-canvas hoạt động trước khi đưa AI vào.
-*/
+
+facesElement.textContent =
+detected.length;
+
+
+if(
+detected.length === 0
+){
+
+setStatus(
+"Đang tìm khuôn mặt..."
+);
+
+return;
+
+}
+
+
+const landmarks =
+detected[0];
+
 
 ctx.fillStyle =
 "#34c759";
 
 
-const cx =
-canvas.width/2;
-
-const cy =
-canvas.height/2;
-
-const r =
-Math.min(
-canvas.width,
-canvas.height
-)*.18;
-
+/*
+Các điểm xanh của khuôn mặt.
+*/
 
 for(
 let i=0;
-i<40;
-i++
+i<landmarks.length;
+i+=4
 ){
 
-const a =
-(i/40)*
-Math.PI*2;
+const p =
+landmarks[i];
+
 
 const x =
-cx+
-Math.cos(a)*r;
+(1-p.x) *
+canvas.width;
+
 
 const y =
-cy+
-Math.sin(a)*r*1.25;
+p.y *
+canvas.height;
 
 
 ctx.beginPath();
@@ -487,7 +541,7 @@ ctx.beginPath();
 ctx.arc(
 x,
 y,
-3,
+1.7,
 0,
 Math.PI*2
 );
@@ -496,12 +550,122 @@ ctx.fill();
 
 }
 
+
+setStatus(
+"FACE MESH OK"
+);
+
 }
 
 
-/* =================================================
+/* ==========================================
+   PROCESS FRAME
+========================================== */
+
+function processFrame(now){
+
+if(
+!running ||
+!landmarker ||
+video.readyState < 2
+){
+
+requestAnimationFrame(
+processFrame
+);
+
+return;
+
+}
+
+
+cameraFrames++;
+
+
+if(
+now-fpsStart >= 1000
+){
+
+cameraFPSElement.textContent =
+cameraFrames;
+
+aiFPSElement.textContent =
+aiFrames;
+
+cameraFrames=0;
+
+aiFrames=0;
+
+fpsStart=now;
+
+}
+
+
+/*
+Chỉ xử lý frame camera mới.
+*/
+
+if(
+video.currentTime !==
+lastVideoTime
+){
+
+lastVideoTime =
+video.currentTime;
+
+
+const t =
+performance.now();
+
+
+try{
+
+const result =
+landmarker.detectForVideo(
+video,
+now
+);
+
+
+latencyElement.textContent =
+(
+performance.now()-t
+).toFixed(1);
+
+
+drawFaceMesh(
+result
+);
+
+
+aiFrames++;
+
+}catch(error){
+
+console.error(
+"Face Mesh:",
+error
+);
+
+setStatus(
+"FACE MESH ERROR"
+);
+
+}
+
+}
+
+
+requestAnimationFrame(
+processFrame
+);
+
+}
+
+
+/* ==========================================
    START
-================================================= */
+========================================== */
 
 start.onclick =
 async function(){
@@ -512,47 +676,54 @@ true;
 
 try{
 
+/*
+1. Camera
+*/
+
 await startCamera();
 
 
-await loadMediaPipe();
+/*
+2. MediaPipe
+*/
+
+await loadAI();
 
 
 /*
-Camera + JavaScript + Canvas
-đã hoạt động.
+3. Start tracking
 */
 
 running =
 true;
 
+
 message.innerHTML =
 
 "<b class='green'>" +
-"CAMERA + JAVASCRIPT OK" +
+"FACE MESH READY" +
 "</b><br>" +
 
-"Đang chuẩn bị Face Mesh";
+"Đưa khuôn mặt vào camera";
 
 
 message.style.display =
-"block";
+"none";
 
 
-setStatus(
-"CAMERA OK • MEDIAPIPE OK"
-);
+start.style.display =
+"none";
 
 
 requestAnimationFrame(
 processFrame
 );
 
-}
 
-catch(error){
+}catch(error){
 
 console.error(
+"FaceLive ERROR:",
 error
 );
 
@@ -569,6 +740,10 @@ message.innerHTML =
 "FACELIVE ERROR" +
 "</b><br><br>" +
 
+error.name +
+
+"<br>" +
+
 error.message;
 
 
@@ -582,55 +757,6 @@ false;
 }
 
 };
-
-
-/* =================================================
-   FRAME LOOP
-================================================= */
-
-function processFrame(now){
-
-if(!running){
-
-return;
-
-}
-
-
-cameraFrames++;
-
-
-if(
-now-fpsTime>=1000
-){
-
-cameraFPS.textContent =
-cameraFrames;
-
-aiFPS.textContent =
-aiFrames;
-
-cameraFrames=0;
-
-aiFrames=0;
-
-fpsTime=now;
-
-}
-
-
-/*
-Hiện overlay test.
-*/
-
-showMesh();
-
-
-requestAnimationFrame(
-processFrame
-);
-
-}
 
 </script>
 
