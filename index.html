@@ -10,206 +10,242 @@ initial-scale=1,
 maximum-scale=1,
 viewport-fit=cover">
 
-<title>FaceLive 3.0</title>
+<title>FaceLive 1.1</title>
 
 <style>
 
 *{
-    box-sizing:border-box;
+box-sizing:border-box;
 }
 
 html,body{
-    margin:0;
-    padding:0;
 
-    width:100%;
-    height:100%;
+margin:0;
+padding:0;
 
-    overflow:hidden;
+width:100%;
+height:100%;
 
-    background:#000;
-    color:#fff;
+overflow:hidden;
 
-    font-family:
-    -apple-system,
-    BlinkMacSystemFont,
-    "Helvetica Neue",
-    Arial,
-    sans-serif;
+background:#000;
+color:#fff;
+
+font-family:
+-apple-system,
+BlinkMacSystemFont,
+"Helvetica Neue",
+Arial,
+sans-serif;
+
 }
 
 #app{
-    position:fixed;
-    inset:0;
-    background:#000;
+
+position:fixed;
+inset:0;
+
+background:#000;
+
 }
 
 #video{
-    position:absolute;
-    inset:0;
 
-    width:100%;
-    height:100%;
+position:absolute;
 
-    object-fit:cover;
+inset:0;
 
-    transform:scaleX(-1);
+width:100%;
+height:100%;
 
-    background:#000;
+object-fit:cover;
+
+transform:scaleX(-1);
+
+background:#000;
+
 }
 
 #canvas{
-    position:absolute;
-    inset:0;
 
-    width:100%;
-    height:100%;
+position:absolute;
 
-    pointer-events:none;
+inset:0;
+
+width:100%;
+height:100%;
+
+pointer-events:none;
+
 }
 
 .panel{
-    background:rgba(0,0,0,.66);
 
-    backdrop-filter:blur(14px);
-    -webkit-backdrop-filter:blur(14px);
+background:
+rgba(0,0,0,.66);
 
-    border-radius:15px;
+backdrop-filter:
+blur(14px);
+
+-webkit-backdrop-filter:
+blur(14px);
+
+border-radius:15px;
+
 }
 
 #top{
-    position:absolute;
 
-    top:max(15px,env(safe-area-inset-top));
+position:absolute;
 
-    left:12px;
-    right:12px;
+top:
+max(15px,
+env(safe-area-inset-top));
 
-    display:flex;
+left:12px;
+right:12px;
 
-    justify-content:space-between;
+display:flex;
 
-    align-items:flex-start;
+justify-content:
+space-between;
 
-    z-index:20;
+align-items:
+flex-start;
+
+z-index:20;
+
 }
 
 #title{
-    padding:12px 14px;
 
-    font-size:19px;
-    font-weight:700;
+padding:
+12px 14px;
+
+font-size:19px;
+
+font-weight:700;
+
 }
 
 #stats{
-    padding:11px 13px;
 
-    text-align:right;
+padding:
+11px 13px;
 
-    font-size:12px;
+font-size:12px;
 
-    line-height:1.6;
+line-height:1.6;
 
-    font-variant-numeric:
-    tabular-nums;
+text-align:right;
+
+font-variant-numeric:
+tabular-nums;
+
 }
 
 #bottom{
-    position:absolute;
 
-    left:12px;
-    right:12px;
+position:absolute;
 
-    bottom:max(
-        15px,
-        env(safe-area-inset-bottom)
-    );
+left:12px;
+right:12px;
 
-    z-index:20;
+bottom:
+max(15px,
+env(safe-area-inset-bottom));
+
+z-index:20;
+
 }
 
 #status{
-    display:inline-block;
 
-    padding:10px 13px;
+display:inline-block;
 
-    margin-bottom:8px;
+padding:
+10px 13px;
 
-    font-size:13px;
+margin-bottom:8px;
+
+font-size:13px;
+
 }
 
 button,
 label{
-    display:block;
 
-    width:100%;
+display:block;
 
-    padding:14px;
+width:100%;
 
-    border:0;
+padding:15px;
 
-    border-radius:16px;
+border:0;
 
-    background:
-    rgba(255,255,255,.18);
+border-radius:16px;
 
-    color:#fff;
+background:
+rgba(255,255,255,.18);
 
-    font-size:15px;
+color:#fff;
 
-    font-weight:700;
+font-size:16px;
 
-    text-align:center;
+font-weight:700;
 
-    margin-top:7px;
-}
+text-align:center;
 
-button:active,
-label:active{
-    transform:scale(.98);
+margin-top:7px;
+
 }
 
 button:disabled{
-    opacity:.5;
+
+opacity:.5;
+
 }
 
 input{
-    display:none;
+
+display:none;
+
 }
 
 #message{
 
-    position:absolute;
+position:absolute;
 
-    left:20px;
-    right:20px;
+left:20px;
+right:20px;
 
-    top:50%;
+top:50%;
 
-    transform:
-    translateY(-50%);
+transform:
+translateY(-50%);
 
-    text-align:center;
+text-align:center;
 
-    font-size:15px;
+font-size:15px;
 
-    line-height:1.6;
+line-height:1.6;
 
-    z-index:10;
+z-index:10;
 
-    pointer-events:none;
+pointer-events:none;
+
 }
 
 .green{
-    color:#34c759;
+
+color:#34c759;
+
 }
 
 .red{
-    color:#ff453a;
-}
 
-.yellow{
-    color:#ffd60a;
+color:#ff453a;
+
 }
 
 </style>
@@ -236,12 +272,16 @@ id="canvas">
 
 <div id="message">
 
-<b>FaceLive 3.0</b>
+<b>
+FaceLive 1.1
+</b>
 
 <br>
 
 <span style="opacity:.7">
-Dense Face Mesh Warp
+
+Eye Anchored Mesh Warp
+
 </span>
 
 </div>
@@ -254,7 +294,7 @@ Dense Face Mesh Warp
 id="title"
 class="panel">
 
-FaceLive 3.0
+FaceLive 1.1
 
 </div>
 
@@ -263,33 +303,56 @@ FaceLive 3.0
 id="stats"
 class="panel">
 
+
 Camera:
-<b id="cameraFPS">--</b>
+<b id="cameraFPS">
+--
+</b>
 FPS
 
 <br>
+
 
 AI:
-<b id="aiFPS">--</b>
+<b id="aiFPS">
+--
+</b>
 FPS
 
 <br>
 
+
+Render:
+<b id="renderFPS">
+--
+</b>
+FPS
+
+<br>
+
+
 Inference:
-<b id="latency">--</b>
+<b id="latency">
+--
+</b>
 ms
 
 <br>
 
+
 Faces:
-<b id="faces">0</b>
+<b id="faces">
+0
+</b>
 
 <br>
+
 
 Mode:
 <b id="mode">
 Tracking
 </b>
+
 
 </div>
 
@@ -304,7 +367,7 @@ Tracking
 id="status"
 class="panel">
 
-● Camera chưa khởi động
+● Chưa khởi động
 
 </div>
 
@@ -320,7 +383,7 @@ START FACELIVE
 <label
 for="photo">
 
-📷 CHỌN ẢNH KHUÔN MẶT MẪU
+📷 CHỌN ẢNH KHUÔN MẶT
 
 </label>
 
@@ -333,6 +396,7 @@ accept="image/*">
 
 </div>
 
+
 </div>
 
 
@@ -340,1449 +404,1891 @@ accept="image/*">
 
 
 /*
-==================================================
-IMPORT MEDIAPIPE
-==================================================
+=========================================
+MEDIAPIPE
+=========================================
 */
+
 
 import {
 
-    FaceLandmarker,
+FaceLandmarker,
 
-    FilesetResolver
+FilesetResolver
 
 }
-from
-
-"https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/+esm";
-
-
-/*
-==================================================
-IMPORT DELAUNATOR
-==================================================
-
-Delaunator tạo tam giác cho toàn bộ
-landmark khuôn mặt.
-==================================================
-*/
-
-import Delaunator
 
 from
 
-"https://cdn.jsdelivr.net/npm/delaunator@5.0.1/+esm";
+"https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.0.1";
 
 
 /*
-==================================================
+=========================================
 ELEMENTS
-==================================================
+=========================================
 */
+
 
 const video =
 document.getElementById(
-    "video"
+"video"
 );
+
 
 const canvas =
 document.getElementById(
-    "canvas"
+"canvas"
 );
+
 
 const ctx =
 canvas.getContext(
-    "2d"
+"2d"
 );
+
 
 const start =
 document.getElementById(
-    "start"
+"start"
 );
+
 
 const status =
 document.getElementById(
-    "status"
+"status"
 );
+
 
 const message =
 document.getElementById(
-    "message"
+"message"
 );
+
 
 const photo =
 document.getElementById(
-    "photo"
+"photo"
 );
 
-const cameraFPSElement =
+
+const cameraFPS =
 document.getElementById(
-    "cameraFPS"
+"cameraFPS"
 );
 
-const aiFPSElement =
+
+const aiFPS =
 document.getElementById(
-    "aiFPS"
+"aiFPS"
 );
 
-const latencyElement =
+
+const renderFPS =
 document.getElementById(
-    "latency"
+"renderFPS"
 );
 
-const facesElement =
+
+const latency =
 document.getElementById(
-    "faces"
+"latency"
 );
 
-const modeElement =
+
+const faces =
 document.getElementById(
-    "mode"
+"faces"
+);
+
+
+const mode =
+document.getElementById(
+"mode"
 );
 
 
 /*
-==================================================
+=========================================
 STATE
-==================================================
+=========================================
 */
+
 
 let landmarker =
 null;
 
+
 let stream =
 null;
 
-let running =
-false;
-
-let lastVideoTime =
--1;
-
-
-/*
-SOURCE IMAGE
-*/
 
 let sourceImage =
 null;
 
 
-/*
-SOURCE FACE LANDMARKS
-*/
-
-let sourcePoints =
-null;
+let running =
+false;
 
 
-/*
-TRIANGLES
-*/
+let lastVideoTime =
+-1;
 
-let triangles =
-null;
-
-
-/*
-FPS
-*/
 
 let cameraFrames =
 0;
 
+
 let aiFrames =
 0;
 
-let fpsTime =
+
+let renderFrames =
+0;
+
+
+let fpsStart =
 performance.now();
 
 
 /*
-==================================================
+=========================================
 STATUS
-==================================================
+=========================================
 */
+
 
 function setStatus(
-    text
+text
 ){
 
-    status.textContent =
-    "● " + text;
+status.textContent =
+"● " + text;
 
 }
 
 
 /*
-==================================================
+=========================================
 CAMERA
-==================================================
+=========================================
 */
 
-async function
-startCamera(){
 
-    setStatus(
-        "Đang mở camera..."
-    );
+async function startCamera(){
 
-
-    if(
-        !navigator.mediaDevices ||
-        !navigator.mediaDevices.getUserMedia
-    ){
-
-        throw new Error(
-            "Camera API không khả dụng"
-        );
-
-    }
+setStatus(
+"Đang mở camera..."
+);
 
 
-    stream =
-    await navigator
-    .mediaDevices
-    .getUserMedia({
+stream =
 
-        audio:false,
+await navigator
+.mediaDevices
+.getUserMedia({
 
-        video:{
+audio:false,
 
-            facingMode:{
-                ideal:"user"
-            },
+video:{
 
-            width:{
-                ideal:1280
-            },
+facingMode:{
+ideal:"user"
+},
 
-            height:{
-                ideal:720
-            },
+width:{
+ideal:1280
+},
 
-            frameRate:{
-                ideal:30,
-                max:30
-            }
+height:{
+ideal:720
+},
 
-        }
-
-    });
-
-
-    video.srcObject =
-    stream;
-
-
-    await video.play();
-
-
-    /*
-    Wait until dimensions
-    are actually available.
-    */
-
-    if(
-        !video.videoWidth ||
-        !video.videoHeight
-    ){
-
-        await new Promise(
-            resolve => {
-
-                video.onloadedmetadata =
-                () => resolve();
-
-            }
-        );
-
-    }
-
-
-    canvas.width =
-    video.videoWidth;
-
-    canvas.height =
-    video.videoHeight;
-
-
-    setStatus(
-        "CAMERA OK"
-    );
-
+frameRate:{
+ideal:30,
+max:30
 }
 
-
-/*
-==================================================
-LOAD AI
-==================================================
-*/
-
-async function
-loadAI(){
-
-    setStatus(
-        "Đang tải AI..."
-    );
-
-
-    const vision =
-    await FilesetResolver
-    .forVisionTasks(
-
-        "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/wasm"
-
-    );
-
-
-    landmarker =
-    await FaceLandmarker
-    .createFromOptions(
-
-        vision,
-
-        {
-
-            baseOptions:{
-
-                modelAssetPath:
-
-                "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task",
-
-                delegate:
-                "GPU"
-
-            },
-
-            runningMode:
-            "VIDEO",
-
-            numFaces:
-            1,
-
-            minFaceDetectionConfidence:
-            .5,
-
-            minFacePresenceConfidence:
-            .5,
-
-            minTrackingConfidence:
-            .5,
-
-            outputFaceBlendshapes:
-            true,
-
-            outputFacialTransformationMatrixes:
-            true
-
-        }
-
-    );
-
-
-    setStatus(
-        "FACE MESH OK"
-    );
-
 }
-
-
-/*
-==================================================
-CONVERT LANDMARK
-==================================================
-*/
-
-function
-landmarkToCanvas(
-    p
-){
-
-    return [
-
-        (1-p.x) *
-        canvas.width,
-
-        p.y *
-        canvas.height
-
-    ];
-
-}
-
-
-/*
-==================================================
-SOURCE IMAGE
-==================================================
-*/
-
-photo.addEventListener(
-"change",
-async function(event){
-
-    const file =
-    event.target.files[0];
-
-
-    if(!file){
-
-        return;
-
-    }
-
-
-    if(!landmarker){
-
-        setStatus(
-            "Hãy START trước"
-        );
-
-        return;
-
-    }
-
-
-    try{
-
-        message.innerHTML =
-
-        "<b class='yellow'>" +
-
-        "ĐANG PHÂN TÍCH ẢNH..." +
-
-        "</b>";
-
-        message.style.display =
-        "block";
-
-
-        setStatus(
-            "Đang phân tích khuôn mặt mẫu..."
-        );
-
-
-        const url =
-        URL.createObjectURL(
-            file
-        );
-
-
-        const img =
-        new Image();
-
-
-        await new Promise(
-            (resolve,reject)=>{
-
-                img.onload =
-                resolve;
-
-                img.onerror =
-                reject;
-
-                img.src =
-                url;
-
-            }
-        );
-
-
-        sourceImage =
-        img;
-
-
-        /*
-        ==========================================
-        SWITCH LANDMARKER TO IMAGE MODE
-        ==========================================
-        */
-
-        await landmarker.setOptions({
-
-            runningMode:
-            "IMAGE"
-
-        });
-
-
-        const result =
-        landmarker.detect(
-            sourceImage
-        );
-
-
-        /*
-        ==========================================
-        CHECK FACE
-        ==========================================
-        */
-
-        if(
-            !result.faceLandmarks ||
-            !result.faceLandmarks.length
-        ){
-
-            throw new Error(
-                "Không tìm thấy khuôn mặt trong ảnh"
-            );
-
-        }
-
-
-        /*
-        ==========================================
-        GET SOURCE LANDMARKS
-        ==========================================
-        */
-
-        const sourceLandmarks =
-        result.faceLandmarks[0];
-
-
-        /*
-        ==========================================
-        SOURCE IMAGE COORDINATES
-        ==========================================
-        */
-
-        sourcePoints =
-        sourceLandmarks.map(
-            p => [
-
-                (1-p.x) *
-                sourceImage.naturalWidth,
-
-                p.y *
-                sourceImage.naturalHeight
-
-            ]
-        );
-
-
-        /*
-        ==========================================
-        CREATE DELAUNAY TRIANGLES
-        ==========================================
-        */
-
-        const delaunay =
-        Delaunator
-        .from(
-            sourcePoints
-        );
-
-
-        triangles =
-        delaunay.triangles;
-
-
-        /*
-        ==========================================
-        SWITCH BACK TO VIDEO
-        ==========================================
-        */
-
-        await landmarker.setOptions({
-
-            runningMode:
-            "VIDEO"
-
-        });
-
-
-        /*
-        ==========================================
-        READY
-        ==========================================
-        */
-
-        modeElement.textContent =
-        "Dense Warp";
-
-
-        message.innerHTML =
-
-        "<b class='green'>" +
-
-        "ẢNH MẪU OK" +
-
-        "</b><br>" +
-
-        "Dense Face Warp đang chạy";
-
-
-        message.style.display =
-        "none";
-
-
-        setStatus(
-            "DENSE FACE WARP OK"
-        );
-
-
-    }
-    catch(error){
-
-        console.error(
-            error
-        );
-
-
-        /*
-        Make sure video mode
-        is restored.
-        */
-
-        try{
-
-            await landmarker.setOptions({
-
-                runningMode:
-                "VIDEO"
-
-            });
-
-        }
-        catch(e){}
-
-
-        sourceImage =
-        null;
-
-        sourcePoints =
-        null;
-
-        triangles =
-        null;
-
-
-        message.innerHTML =
-
-        "<b class='red'>" +
-
-        "ẢNH MẪU ERROR" +
-
-        "</b><br>" +
-
-        error.message;
-
-
-        message.style.display =
-        "block";
-
-
-        setStatus(
-            "Không đọc được khuôn mặt mẫu"
-        );
-
-    }
 
 });
 
 
-/*
-==================================================
-AFFINE TRANSFORM
-==================================================
-*/
-
-function
-triangleWarp(
-    src,
-    dst
-){
-
-    /*
-    Source:
-    [x0,y0]
-    [x1,y1]
-    [x2,y2]
-
-    Destination:
-    [x0,y0]
-    [x1,y1]
-    [x2,y2]
-    */
-
-    const x0 =
-    src[0][0];
-
-    const y0 =
-    src[0][1];
-
-    const x1 =
-    src[1][0];
-
-    const y1 =
-    src[1][1];
-
-    const x2 =
-    src[2][0];
-
-    const y2 =
-    src[2][1];
+video.srcObject =
+stream;
 
 
-    const u0 =
-    dst[0][0];
-
-    const v0 =
-    dst[0][1];
-
-    const u1 =
-    dst[1][0];
-
-    const v1 =
-    dst[1][1];
-
-    const u2 =
-    dst[2][0];
-
-    const v2 =
-    dst[2][1];
+await video.play();
 
 
-    const det =
-
-        x0*(y1-y2) +
-
-        x1*(y2-y0) +
-
-        x2*(y0-y1);
+canvas.width =
+video.videoWidth;
 
 
-    if(
-        Math.abs(det)
-        < .0001
-    ){
-
-        return;
-
-    }
+canvas.height =
+video.videoHeight;
 
 
-    const a =
-
-        (
-            u0*(y1-y2) +
-            u1*(y2-y0) +
-            u2*(y0-y1)
-        ) / det;
-
-
-    const b =
-
-        (
-            v0*(y1-y2) +
-            v1*(y2-y0) +
-            v2*(y0-y1)
-        ) / det;
-
-
-    const c =
-
-        (
-            u0*(x2-x1) +
-            u1*(x0-x2) +
-            u2*(x1-x0)
-        ) / det;
-
-
-    const d =
-
-        (
-            v0*(x2-x1) +
-            v1*(x0-x2) +
-            v2*(x1-x0)
-        ) / det;
-
-
-    const e =
-
-        u0 -
-        a*x0 -
-        c*y0;
-
-
-    const f =
-
-        v0 -
-        b*x0 -
-        d*y0;
-
-
-    ctx.setTransform(
-        a,
-        b,
-        c,
-        d,
-        e,
-        f
-    );
-
-
-    /*
-    Clip to destination triangle.
-    */
-
-    ctx.beginPath();
-
-    ctx.moveTo(
-        u0,
-        v0
-    );
-
-    ctx.lineTo(
-        u1,
-        v1
-    );
-
-    ctx.lineTo(
-        u2,
-        v2
-    );
-
-    ctx.closePath();
-
-    ctx.clip();
-
-
-    ctx.drawImage(
-        sourceImage,
-        0,
-        0
-    );
+setStatus(
+"Camera OK"
+);
 
 }
 
 
 /*
-==================================================
-DENSE FACE WARP
-==================================================
+=========================================
+AI
+=========================================
 */
 
-function
-drawDenseWarp(
-    landmarks
-){
 
-    if(
-        !sourceImage ||
-        !sourcePoints ||
-        !triangles
-    ){
+async function loadAI(){
 
-        return;
+setStatus(
+"Đang tải AI..."
+);
 
-    }
 
+const vision =
 
-    /*
-    ==========================================
-    TARGET LANDMARKS
-    ==========================================
-    */
+await FilesetResolver
+.forVisionTasks(
 
-    const targetPoints =
-    landmarks.map(
-        landmarkToCanvas
-    );
+"https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.0.1/wasm"
 
+);
 
-    /*
-    ==========================================
-    CLEAR
-    ==========================================
-    */
 
-    ctx.clearRect(
-        0,
-        0,
-        canvas.width,
-        canvas.height
-    );
+landmarker =
 
+await FaceLandmarker
+.createFromModelPath(
 
-    /*
-    ==========================================
-    DRAW WARPED TRIANGLES
-    ==========================================
-    */
+vision,
 
-    ctx.save();
+"https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task"
 
+);
 
-    ctx.globalAlpha =
-    .96;
 
+await landmarker.setOptions({
 
-    for(
-        let i=0;
-        i<triangles.length;
-        i+=3
-    ){
+runningMode:
+"VIDEO",
 
-        const ia =
-        triangles[i];
+numFaces:
+1,
 
-        const ib =
-        triangles[i+1];
+minFaceDetectionConfidence:
+.5,
 
-        const ic =
-        triangles[i+2];
+minFacePresenceConfidence:
+.5,
 
+minTrackingConfidence:
+.5,
 
-        const src = [
+outputFaceBlendshapes:
+true,
 
-            sourcePoints[ia],
+outputFacialTransformationMatrixes:
+true
 
-            sourcePoints[ib],
+});
 
-            sourcePoints[ic]
 
-        ];
-
-
-        const dst = [
-
-            targetPoints[ia],
-
-            targetPoints[ib],
-
-            targetPoints[ic]
-
-        ];
-
-
-        ctx.save();
-
-
-        triangleWarp(
-            src,
-            dst
-        );
-
-
-        ctx.restore();
-
-    }
-
-
-    ctx.restore();
-
-
-    /*
-    ==========================================
-    FACE EDGE FEATHER
-    ==========================================
-    */
-
-    const left =
-    targetPoints[234];
-
-    const right =
-    targetPoints[454];
-
-    const top =
-    targetPoints[10];
-
-    const bottom =
-    targetPoints[152];
-
-
-    if(
-        left &&
-        right &&
-        top &&
-        bottom
-    ){
-
-        const cx =
-        (left[0]+right[0])/2;
-
-
-        const cy =
-        (top[1]+bottom[1])/2;
-
-
-        const rx =
-        Math.abs(
-            right[0]-left[0]
-        )*.58;
-
-
-        const ry =
-        Math.abs(
-            bottom[1]-top[1]
-        )*.57;
-
-
-        /*
-        Soft mask.
-
-        Keep the central face visible,
-        fade the boundary.
-        */
-
-        const mask =
-        document.createElement(
-            "canvas"
-        );
-
-
-        mask.width =
-        canvas.width;
-
-        mask.height =
-        canvas.height;
-
-
-        const mc =
-        mask.getContext("2d");
-
-
-        const gradient =
-        mc.createRadialGradient(
-
-            cx,
-            cy,
-
-            Math.min(rx,ry)*.55,
-
-            cx,
-            cy,
-
-            Math.max(rx,ry)
-
-        );
-
-
-        gradient.addColorStop(
-            0,
-            "rgba(255,255,255,1)"
-        );
-
-
-        gradient.addColorStop(
-            .72,
-            "rgba(255,255,255,.98)"
-        );
-
-
-        gradient.addColorStop(
-            .88,
-            "rgba(255,255,255,.55)"
-        );
-
-
-        gradient.addColorStop(
-            1,
-            "rgba(255,255,255,0)"
-        );
-
-
-        mc.fillStyle =
-        gradient;
-
-
-        mc.beginPath();
-
-
-        mc.ellipse(
-
-            cx,
-            cy,
-
-            rx,
-            ry,
-
-            0,
-            0,
-            Math.PI*2
-
-        );
-
-
-        mc.fill();
-
-
-        /*
-        The mask is intentionally
-        not used as destination-out.
-
-        Instead we use it to softly
-        overlay the central face.
-        */
-
-    }
-
-
-    /*
-    ==========================================
-    STATUS
-    ==========================================
-    */
-
-    modeElement.textContent =
-    "Dense Warp";
-
-
-    setStatus(
-        "DENSE FACE WARP OK"
-    );
+setStatus(
+"AI Face Mesh OK"
+);
 
 }
 
 
 /*
-==================================================
-NORMAL FACE MESH
-==================================================
+=========================================
+PHOTO
+=========================================
 */
 
-function
+
+photo.onchange =
+function(event){
+
+const file =
+event.target.files[0];
+
+
+if(!file){
+return;
+}
+
+
+const url =
+URL.createObjectURL(
+file
+);
+
+
+const img =
+new Image();
+
+
+img.onload =
+function(){
+
+sourceImage =
+img;
+
+
+mode.textContent =
+"Mesh Warp";
+
+
+message.innerHTML =
+
+"<b class='green'>" +
+
+"ẢNH ĐÃ TẢI" +
+
+"</b><br>" +
+
+"Đưa khuôn mặt vào camera";
+
+
+message.style.display =
+"block";
+
+
+setStatus(
+"Ảnh nguồn đã sẵn sàng"
+);
+
+};
+
+
+img.onerror =
+function(){
+
+setStatus(
+"Không đọc được ảnh"
+);
+
+};
+
+
+img.src =
+url;
+
+};
+
+
+/*
+=========================================
+LANDMARK POINT
+=========================================
+*/
+
+
+function point(
+landmarks,
+index
+){
+
+const p =
+landmarks[index];
+
+
+return {
+
+x:
+(1-p.x) *
+canvas.width,
+
+y:
+p.y *
+canvas.height
+
+};
+
+}
+
+
+/*
+=========================================
+FACE BOUNDS
+=========================================
+*/
+
+
+function getFaceBounds(
+landmarks
+){
+
+let minX =
+canvas.width;
+
+
+let minY =
+canvas.height;
+
+
+let maxX =
+0;
+
+
+let maxY =
+0;
+
+
+for(
+const p
+of landmarks
+){
+
+const x =
+(1-p.x) *
+canvas.width;
+
+
+const y =
+p.y *
+canvas.height;
+
+
+minX =
+Math.min(
+minX,
+x
+);
+
+
+minY =
+Math.min(
+minY,
+y
+);
+
+
+maxX =
+Math.max(
+maxX,
+x
+);
+
+
+maxY =
+Math.max(
+maxY,
+y
+);
+
+}
+
+
+return {
+
+left:minX,
+
+top:minY,
+
+right:maxX,
+
+bottom:maxY,
+
+width:
+maxX-minX,
+
+height:
+maxY-minY
+
+};
+
+}
+
+
+/*
+=========================================
+TRIANGLE TRANSFORM
+=========================================
+*/
+
+
+function triangleTransform(
+
+s1,
+s2,
+s3,
+
+d1,
+d2,
+d3
+
+){
+
+const den =
+
+s1.x *
+(s2.y-s3.y)
+
++
+
+s2.x *
+(s3.y-s1.y)
+
++
+
+s3.x *
+(s1.y-s2.y);
+
+
+if(
+Math.abs(den)
+<0.000001
+){
+
+return null;
+
+}
+
+
+/*
+A
+*/
+
+const a =
+
+(
+
+d1.x *
+(s2.y-s3.y)
+
++
+
+d2.x *
+(s3.y-s1.y)
+
++
+
+d3.x *
+(s1.y-s2.y)
+
+)
+/den;
+
+
+/*
+C
+*/
+
+const c =
+
+(
+
+d1.x *
+(s3.x-s2.x)
+
++
+
+d2.x *
+(s1.x-s3.x)
+
++
+
+d3.x *
+(s2.x-s1.x)
+
+)
+/den;
+
+
+/*
+E
+*/
+
+const e =
+
+(
+
+d1.x *
+(
+s2.x*s3.y-
+s3.x*s2.y
+)
+
++
+
+d2.x *
+(
+s3.x*s1.y-
+s1.x*s3.y
+)
+
++
+
+d3.x *
+(
+s1.x*s2.y-
+s2.x*s1.y
+)
+
+)
+/den;
+
+
+/*
+B
+*/
+
+const b =
+
+(
+
+d1.y *
+(s2.y-s3.y)
+
++
+
+d2.y *
+(s3.y-s1.y)
+
++
+
+d3.y *
+(s1.y-s2.y)
+
+)
+/den;
+
+
+/*
+D
+*/
+
+const d =
+
+(
+
+d1.y *
+(s3.x-s2.x)
+
++
+
+d2.y *
+(s1.x-s3.x)
+
++
+
+d3.y *
+(s2.x-s1.x)
+
+)
+/den;
+
+
+/*
+F
+*/
+
+const f =
+
+(
+
+d1.y *
+(
+s2.x*s3.y-
+s3.x*s2.y
+)
+
++
+
+d2.y *
+(
+s3.x*s1.y-
+s1.x*s3.y
+)
+
++
+
+d3.y *
+(
+s1.x*s2.y-
+s2.x*s1.y
+)
+
+)
+/den;
+
+
+return {
+
+a,
+b,
+c,
+d,
+e,
+f
+
+};
+
+}
+
+
+/*
+=========================================
+DRAW TRIANGLE
+=========================================
+*/
+
+
+function drawTriangle(
+
+image,
+
+s1,
+s2,
+s3,
+
+d1,
+d2,
+d3
+
+){
+
+const matrix =
+
+triangleTransform(
+
+s1,
+s2,
+s3,
+
+d1,
+d2,
+d3
+
+);
+
+
+if(!matrix){
+return;
+}
+
+
+ctx.save();
+
+
+ctx.beginPath();
+
+
+ctx.moveTo(
+d1.x,
+d1.y
+);
+
+
+ctx.lineTo(
+d2.x,
+d2.y
+);
+
+
+ctx.lineTo(
+d3.x,
+d3.y
+);
+
+
+ctx.closePath();
+
+
+ctx.clip();
+
+
+ctx.setTransform(
+
+matrix.a,
+matrix.b,
+matrix.c,
+matrix.d,
+matrix.e,
+matrix.f
+
+);
+
+
+ctx.drawImage(
+image,
+0,
+0
+);
+
+
+ctx.restore();
+
+}
+
+
+/*
+=========================================
+MESH WARP 1.1
+=========================================
+*/
+
+
+function drawMesh(
+landmarks
+){
+
+if(!sourceImage){
+return;
+}
+
+
+/*
+FACE BOUNDS
+*/
+
+const bounds =
+getFaceBounds(
+landmarks
+);
+
+
+/*
+TARGET LANDMARKS
+*/
+
+const leftEye =
+point(
+landmarks,
+33
+);
+
+
+const rightEye =
+point(
+landmarks,
+263
+);
+
+
+const nose =
+point(
+landmarks,
+1
+);
+
+
+const leftMouth =
+point(
+landmarks,
+61
+);
+
+
+const rightMouth =
+point(
+landmarks,
+291
+);
+
+
+const chin =
+point(
+landmarks,
+152
+);
+
+
+const leftFace =
+point(
+landmarks,
+234
+);
+
+
+const rightFace =
+point(
+landmarks,
+454
+);
+
+
+const forehead =
+point(
+landmarks,
+10
+);
+
+
+/*
+=========================================
+EYE DISTANCE
+=========================================
+*/
+
+
+const eyeDX =
+rightEye.x-
+leftEye.x;
+
+
+const eyeDY =
+rightEye.y-
+leftEye.y;
+
+
+const eyeDistance =
+
+Math.sqrt(
+
+eyeDX*eyeDX+
+eyeDY*eyeDY
+
+);
+
+
+/*
+=========================================
+SOURCE IMAGE
+=========================================
+*/
+
+
+const sw =
+sourceImage.naturalWidth;
+
+
+const sh =
+sourceImage.naturalHeight;
+
+
+/*
+=========================================
+SOURCE FACE MODEL
+=========================================
+*/
+
+
+const source = {
+
+leftEye:{
+x:sw*.35,
+y:sh*.38
+},
+
+rightEye:{
+x:sw*.65,
+y:sh*.38
+},
+
+nose:{
+x:sw*.50,
+y:sh*.52
+},
+
+leftMouth:{
+x:sw*.40,
+y:sh*.64
+},
+
+rightMouth:{
+x:sw*.60,
+y:sh*.64
+},
+
+chin:{
+x:sw*.50,
+y:sh*.80
+},
+
+leftFace:{
+x:sw*.20,
+y:sh*.52
+},
+
+rightFace:{
+x:sw*.80,
+y:sh*.52
+},
+
+forehead:{
+x:sw*.50,
+y:sh*.20
+}
+
+};
+
+
+/*
+=========================================
+VERTICAL CORRECTION
+=========================================
+
+This is the important change.
+
+The previous version appeared
+slightly too low.
+
+The mesh is now lifted relative
+to the eyes.
+*/
+
+
+const lift =
+eyeDistance*.055;
+
+
+/*
+=========================================
+TARGET
+=========================================
+*/
+
+
+const target = {
+
+leftEye:{
+
+x:leftEye.x,
+
+y:leftEye.y
+
+},
+
+
+rightEye:{
+
+x:rightEye.x,
+
+y:rightEye.y
+
+},
+
+
+nose:{
+
+x:nose.x,
+
+y:nose.y-
+lift*.25
+
+},
+
+
+leftMouth:{
+
+x:leftMouth.x,
+
+y:leftMouth.y-
+lift*.40
+
+},
+
+
+rightMouth:{
+
+x:rightMouth.x,
+
+y:rightMouth.y-
+lift*.40
+
+},
+
+
+chin:{
+
+x:chin.x,
+
+y:chin.y-
+lift*.45
+
+},
+
+
+leftFace:{
+
+x:leftFace.x,
+
+y:leftFace.y-
+lift*.55
+
+},
+
+
+rightFace:{
+
+x:rightFace.x,
+
+y:rightFace.y-
+lift*.55
+
+},
+
+
+forehead:{
+
+x:forehead.x,
+
+y:forehead.y-
+lift
+
+}
+
+};
+
+
+/*
+=========================================
+WIDTH CORRECTION
+=========================================
+*/
+
+
+const widthCorrection =
+.96;
+
+
+const centerX =
+
+(
+leftEye.x+
+rightEye.x
+)/2;
+
+
+for(
+const key
+of Object.keys(target)
+){
+
+target[key].x =
+
+centerX +
+
+(
+target[key].x-
+centerX
+)
+
+*
+widthCorrection;
+
+}
+
+
+/*
+=========================================
+FACE PADDING
+=========================================
+*/
+
+
+const padX =
+bounds.width*.035;
+
+
+const padY =
+bounds.height*.035;
+
+
+target.leftFace.x -=
+padX;
+
+
+target.rightFace.x +=
+padX;
+
+
+target.forehead.y -=
+padY;
+
+
+target.chin.y +=
+padY;
+
+
+/*
+=========================================
+MESH
+=========================================
+*/
+
+
+/*
+UPPER LEFT
+*/
+
+drawTriangle(
+
+sourceImage,
+
+source.forehead,
+source.leftEye,
+source.leftFace,
+
+target.forehead,
+target.leftEye,
+target.leftFace
+
+);
+
+
+/*
+UPPER RIGHT
+*/
+
+drawTriangle(
+
+sourceImage,
+
+source.forehead,
+source.rightFace,
+source.rightEye,
+
+target.forehead,
+target.rightFace,
+target.rightEye
+
+);
+
+
+/*
+LEFT EYE
+*/
+
+drawTriangle(
+
+sourceImage,
+
+source.leftEye,
+source.nose,
+source.leftFace,
+
+target.leftEye,
+target.nose,
+target.leftFace
+
+);
+
+
+/*
+RIGHT EYE
+*/
+
+drawTriangle(
+
+sourceImage,
+
+source.nose,
+source.rightEye,
+source.rightFace,
+
+target.nose,
+target.rightEye,
+target.rightFace
+
+);
+
+
+/*
+LEFT NOSE
+*/
+
+drawTriangle(
+
+sourceImage,
+
+source.nose,
+source.leftMouth,
+source.leftFace,
+
+target.nose,
+target.leftMouth,
+target.leftFace
+
+);
+
+
+/*
+RIGHT NOSE
+*/
+
+drawTriangle(
+
+sourceImage,
+
+source.nose,
+source.rightFace,
+source.rightMouth,
+
+target.nose,
+target.rightFace,
+target.rightMouth
+
+);
+
+
+/*
+LEFT MOUTH
+*/
+
+drawTriangle(
+
+sourceImage,
+
+source.leftMouth,
+source.chin,
+source.leftFace,
+
+target.leftMouth,
+target.chin,
+target.leftFace
+
+);
+
+
+/*
+RIGHT MOUTH
+*/
+
+drawTriangle(
+
+sourceImage,
+
+source.chin,
+source.rightMouth,
+source.rightFace,
+
+target.chin,
+target.rightMouth,
+target.rightFace
+
+);
+
+
+/*
+CENTER
+*/
+
+drawTriangle(
+
+sourceImage,
+
+source.leftEye,
+source.rightEye,
+source.nose,
+
+target.leftEye,
+target.rightEye,
+target.nose
+
+);
+
+
+/*
+=========================================
+FEATHER
+=========================================
+*/
+
+applyFeather(
+target,
+bounds
+);
+
+}
+
+
+/*
+=========================================
+FEATHER MASK
+=========================================
+*/
+
+
+function applyFeather(
+target,
+bounds
+){
+
+const cx =
+
+(
+bounds.left+
+bounds.right
+)/2;
+
+
+const cy =
+
+(
+bounds.top+
+bounds.bottom
+)/2;
+
+
+const rx =
+bounds.width*.53;
+
+
+const ry =
+bounds.height*.53;
+
+
+const gradient =
+
+ctx.createRadialGradient(
+
+cx,
+cy,
+
+Math.min(
+rx,
+ry
+)*.62,
+
+cx,
+cy,
+
+Math.max(
+rx,
+ry
+)
+
+);
+
+
+gradient.addColorStop(
+0,
+"rgba(0,0,0,0)"
+);
+
+
+gradient.addColorStop(
+.72,
+"rgba(0,0,0,.02)"
+);
+
+
+gradient.addColorStop(
+.90,
+"rgba(0,0,0,.55)"
+);
+
+
+gradient.addColorStop(
+1,
+"rgba(0,0,0,1)"
+);
+
+
+ctx.save();
+
+
+ctx.globalCompositeOperation =
+"destination-out";
+
+
+ctx.fillStyle =
+gradient;
+
+
+ctx.beginPath();
+
+
+ctx.ellipse(
+
+cx,
+cy,
+rx,
+ry,
+
+0,
+0,
+Math.PI*2
+
+);
+
+
+ctx.fill();
+
+
+ctx.restore();
+
+}
+
+
+/*
+=========================================
+DRAW RESULT
+=========================================
+*/
+
+
+function drawResult(
+result
+){
+
+ctx.setTransform(
+1,0,0,1,0,0
+);
+
+
+ctx.clearRect(
+
+0,
+0,
+canvas.width,
+canvas.height
+
+);
+
+
+const detected =
+result.faceLandmarks ||
+[];
+
+
+faces.textContent =
+detected.length;
+
+
+if(
+detected.length===0
+){
+
+setStatus(
+"Đang tìm khuôn mặt..."
+);
+
+return;
+
+}
+
+
+const landmarks =
+detected[0];
+
+
+if(
+sourceImage
+){
+
+ctx.globalAlpha =
+.96;
+
+
 drawMesh(
-    landmarks
+landmarks
+);
+
+
+ctx.globalAlpha =
+1;
+
+
+mode.textContent =
+"Mesh Warp";
+
+
+setStatus(
+"FACE MESH OK"
+);
+
+}
+
+else{
+
+
+mode.textContent =
+"Tracking";
+
+
+setStatus(
+"FACE TRACKING OK"
+);
+
+
+ctx.fillStyle =
+"#34c759";
+
+
+for(
+
+let i=0;
+
+i<landmarks.length;
+
+i+=3
+
 ){
 
-    ctx.clearRect(
-        0,
-        0,
-        canvas.width,
-        canvas.height
-    );
+const p =
+landmarks[i];
 
 
-    ctx.fillStyle =
-    "#34c759";
+const x =
+
+(1-p.x)*
+canvas.width;
 
 
-    for(
-        let i=0;
-        i<landmarks.length;
-        i+=4
-    ){
+const y =
 
-        const p =
-        landmarks[i];
+p.y*
+canvas.height;
 
 
-        const x =
-        (1-p.x) *
-        canvas.width;
+ctx.beginPath();
 
 
-        const y =
-        p.y *
-        canvas.height;
+ctx.arc(
+
+x,
+y,
+
+1.5,
+
+0,
+Math.PI*2
+
+);
 
 
-        ctx.beginPath();
+ctx.fill();
 
+}
 
-        ctx.arc(
-
-            x,
-            y,
-
-            1.6,
-
-            0,
-            Math.PI*2
-
-        );
-
-
-        ctx.fill();
-
-    }
-
-
-    modeElement.textContent =
-    "Tracking";
-
-
-    setStatus(
-        "FACE MESH OK"
-    );
+}
 
 }
 
 
 /*
-==================================================
-MAIN LOOP
-==================================================
+=========================================
+REALTIME
+=========================================
 */
 
-function
-processFrame(
-    now
+
+function processFrame(
+now
 ){
 
-    if(
-        !running ||
-        !landmarker ||
-        video.readyState<2
-    ){
-
-        requestAnimationFrame(
-            processFrame
-        );
-
-        return;
-
-    }
+renderFrames++;
 
 
-    cameraFrames++;
+if(
+
+!running ||
+!landmarker ||
+video.readyState<2
+
+){
+
+requestAnimationFrame(
+processFrame
+);
+
+return;
+
+}
 
 
-    /*
-    ==========================================
-    FPS
-    ==========================================
-    */
-
-    if(
-        now-fpsTime>=1000
-    ){
-
-        cameraFPSElement.textContent =
-        cameraFrames;
+cameraFrames++;
 
 
-        aiFPSElement.textContent =
-        aiFrames;
+if(
+now-fpsStart>=1000
+){
+
+cameraFPS.textContent =
+cameraFrames;
 
 
-        cameraFrames =
-        0;
+aiFPS.textContent =
+aiFrames;
 
 
-        aiFrames =
-        0;
+renderFPS.textContent =
+renderFrames;
 
 
-        fpsTime =
-        now;
-
-    }
+cameraFrames =
+0;
 
 
-    /*
-    ==========================================
-    NEW VIDEO FRAME
-    ==========================================
-    */
-
-    if(
-        video.currentTime !==
-        lastVideoTime
-    ){
-
-        lastVideoTime =
-        video.currentTime;
+aiFrames =
+0;
 
 
-        const t0 =
-        performance.now();
+renderFrames =
+0;
 
 
-        try{
-
-            const result =
-            landmarker
-            .detectForVideo(
-                video,
-                now
-            );
-
-
-            latencyElement.textContent =
-            (
-                performance.now()-t0
-            ).toFixed(1);
-
-
-            const faces =
-            result.faceLandmarks ||
-            [];
-
-
-            facesElement.textContent =
-            faces.length;
-
-
-            if(
-                faces.length>0
-            ){
-
-                if(
-                    sourceImage &&
-                    sourcePoints &&
-                    triangles
-                ){
-
-                    drawDenseWarp(
-                        faces[0]
-                    );
-
-                }
-                else{
-
-                    drawMesh(
-                        faces[0]
-                    );
-
-                }
-
-            }
-            else{
-
-                ctx.clearRect(
-                    0,
-                    0,
-                    canvas.width,
-                    canvas.height
-                );
-
-
-                facesElement.textContent =
-                "0";
-
-
-                setStatus(
-                    "Đang tìm khuôn mặt..."
-                );
-
-            }
-
-
-            aiFrames++;
-
-        }
-        catch(error){
-
-            console.error(
-                "FaceLive:",
-                error
-            );
-
-
-            setStatus(
-                "AI ERROR"
-            );
-
-        }
-
-    }
-
-
-    requestAnimationFrame(
-        processFrame
-    );
+fpsStart =
+now;
 
 }
 
 
 /*
-==================================================
+ONLY NEW CAMERA FRAME
+*/
+
+if(
+
+video.currentTime !==
+lastVideoTime
+
+){
+
+lastVideoTime =
+video.currentTime;
+
+
+const startTime =
+performance.now();
+
+
+try{
+
+const result =
+
+landmarker.detectForVideo(
+
+video,
+now
+
+);
+
+
+latency.textContent =
+
+(
+performance.now()-
+startTime
+
+).toFixed(1);
+
+
+drawResult(
+result
+);
+
+
+aiFrames++;
+
+
+}
+
+catch(error){
+
+console.error(
+"FaceLive:",
+error
+);
+
+
+setStatus(
+"AI ERROR"
+);
+
+}
+
+}
+
+
+requestAnimationFrame(
+processFrame
+);
+
+}
+
+
+/*
+=========================================
 START
-==================================================
+=========================================
 */
 
-start.addEventListener(
-"click",
+
+start.onclick =
 async function(){
 
-    start.disabled =
-    true;
+start.disabled =
+true;
 
 
-    try{
+try{
 
-        /*
-        CAMERA FIRST
-        */
-
-        await startCamera();
+await startCamera();
 
 
-        /*
-        AI SECOND
-        */
-
-        await loadAI();
+await loadAI();
 
 
-        /*
-        RUN
-        */
-
-        running =
-        true;
+running =
+true;
 
 
-        start.style.display =
-        "none";
+start.style.display =
+"none";
 
 
-        message.style.display =
-        "none";
+message.style.display =
+"none";
 
 
-        setStatus(
-            "FACE MESH OK"
-        );
+requestAnimationFrame(
+processFrame
+);
 
 
-        requestAnimationFrame(
-            processFrame
-        );
+}
 
-    }
-    catch(error){
+catch(error){
 
-        console.error(
-            error
-        );
+console.error(
+error
+);
 
 
-        setStatus(
-            "FACELIVE ERROR"
-        );
+setStatus(
+
+"LỖI: "+
+error.name
+
+);
 
 
-        message.innerHTML =
+message.innerHTML =
 
-        "<b class='red'>" +
+"<b class='red'>" +
 
-        "FACELIVE ERROR" +
+"FACELIVE ERROR" +
 
-        "</b><br><br>" +
+"</b><br><br>" +
 
-        error.name +
+error.name +
 
-        "<br>" +
+"<br>" +
 
-        error.message;
-
-
-        message.style.display =
-        "block";
+error.message;
 
 
-        start.disabled =
-        false;
+message.style.display =
+"block";
 
-    }
 
-});
+start.disabled =
+false;
+
+}
+
+};
 
 
 </script>
