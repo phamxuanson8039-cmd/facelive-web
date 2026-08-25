@@ -1,0 +1,40 @@
+name: Repair Face AI
+on:
+  push:
+    paths:
+      - 'index.html'
+      - '.github/workflows/repair-face-ai.yml'
+permissions:
+  contents: write
+jobs:
+  repair:
+    if: ${{ !contains(github.event.head_commit.message, '[face-ai-repair]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Repair browser model loading
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('index.html')
+          s=p.read_text(encoding='utf-8')
+          s=s.replace("https://github.com/facefusion/facefusion-assets/releases/download/models-3.0.0/arcface_w600k_r50.onnx", "https://huggingface.co/facefusion/models-3.0.0/resolve/main/arcface_w600k_r50.onnx?download=true")
+          s=s.replace("https://github.com/facefusion/facefusion-assets/releases/download/models-3.0.0/inswapper_128.onnx", "https://huggingface.co/facefusion/models-3.0.0/resolve/main/inswapper_128.onnx?download=true")
+          s=s.replace("https://raw.githubusercontent.com/somanchiu/ReSwapper/main/emap.npy", "https://raw.githubusercontent.com/somanchiu/ReSwapper/main/emap.npy")
+          old="async function loadEmap(){setStatus('Đang tải EMAP...');const r=await fetch(EMAP_URL,{cache:'force-cache'});if(!r.ok)throw Error('Không tải được EMAP');const n=parseNpy(await r.arrayBuffer());if(n.s.length!==2||n.s[0]!==512||n.s[1]!==512)throw Error('EMAP sai kích thước');emap=n.data}"
+          new="async function loadEmap(){setStatus('Đang tải EMAP...');try{const r=await fetch(EMAP_URL,{cache:'force-cache'});if(!r.ok)throw Error('HTTP '+r.status);const n=parseNpy(await r.arrayBuffer());if(n.s.length!==2||n.s[0]!==512||n.s[1]!==512)throw Error('sai kích thước');emap=n.data;return true}catch(e){console.warn('EMAP unavailable',e);emap=null;setStatus('EMAP không tải được — dùng fallback');return false}}"
+          s=s.replace(old,new)
+          old2="function makeLatent(v){let n=0;for(let i=0;i<v.length;i++)n+=v[i]*v[i];n=Math.sqrt(n)||1;const z=new Float32Array(512);for(let j=0;j<512;j++){let q=0;for(let i=0;i<512;i++)q+=(v[i]/n)*emap[i*512+j];z[j]=q}let n2=0;for(const x of z)n2+=x*x;n2=Math.sqrt(n2)||1;for(let i=0;i<512;i++)z[i]/=n2;return z}"
+          new2="function makeLatent(v){let n=0;for(let i=0;i<v.length;i++)n+=v[i]*v[i];n=Math.sqrt(n)||1;const z=new Float32Array(512);if(!emap){for(let i=0;i<512;i++)z[i]=v[i]/n;return z}for(let j=0;j<512;j++){let q=0;for(let i=0;i<512;i++)q+=(v[i]/n)*emap[i*512+j];z[j]=q}let n2=0;for(const x of z)n2+=x*x;n2=Math.sqrt(n2)||1;for(let i=0;i<512;i++)z[i]/=n2;return z}"
+          s=s.replace(old2,new2)
+          s=s.replace("if(arc){a[y*size+x]=(r-127.5)/127.5;a[n+y*size+x]=(g-127.5)/127.5;a[2*n+y*size+x]=(b-127.5)/127.5}","if(arc){a[y*size+x]=(r-127.5)/127.5;a[n+y*size+x]=(g-127.5)/127.5;a[2*n+y*size+x]=(b-127.5)/127.5}")
+          p.write_text(s,encoding='utf-8')
+          PY
+      - name: Commit repair
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html
+          git diff --cached --quiet && exit 0
+          git commit -m '[face-ai-repair] repair model loading fallback'
+          git push
