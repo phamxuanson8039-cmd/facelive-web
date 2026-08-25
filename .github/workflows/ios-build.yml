@@ -1,0 +1,29 @@
+name: FaceLive iOS Build
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'ios/**'
+      - '.github/workflows/ios-build.yml'
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install XcodeGen
+        run: brew install xcodegen
+      - name: Generate Xcode project
+        working-directory: ios
+        run: xcodegen generate
+      - name: Build unsigned iOS app
+        working-directory: ios
+        run: xcodebuild -project FaceLiveIOS.xcodeproj -scheme FaceLiveIOS -sdk iphoneos -configuration Release CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO build SYMROOT=$PWD/build
+      - name: Package app
+        working-directory: ios/build/Release-iphoneos
+        run: zip -r FaceLiveIOS-unsigned.zip FaceLiveIOS.app
+      - name: Upload build
+        uses: actions/upload-artifact@v4
+        with:
+          name: FaceLiveIOS-unsigned
+          path: ios/build/Release-iphoneos/FaceLiveIOS-unsigned.zip
