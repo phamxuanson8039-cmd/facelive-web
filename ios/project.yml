@@ -9,7 +9,7 @@ settings:
 packages:
   AmigoFaceSwapSDK:
     url: https://github.com/AmigoAIAdmin/AmigoSDK_iOS.git
-    exactVersion: 1.0.2
+    branch: main
 targets:
   FaceLiveIOS:
     type: application
