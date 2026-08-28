@@ -1,5 +1,6 @@
 import SwiftUI
 import PhotosUI
+import UIKit
 
 #if canImport(AmigoFaceSwapSDK)
 import AmigoFaceSwapSDK
@@ -66,14 +67,13 @@ struct ContentView: View {
                     .clipShape(RoundedRectangle(cornerRadius: 14))
             }
             .padding(.horizontal)
-            .onChange(of: selectedPhoto) { _, item in
+            .onChange(of: selectedPhoto) { item in
                 Task {
                     guard let data = try? await item?.loadTransferable(type: Data.self),
-                          let data,
                           let image = UIImage(data: data) else { return }
                     sourceImage = image
                     guard !apiKey.isEmpty else {
-                        engine.status = "Hãy nhập API key trước"
+                        engine.setStatus("Hãy nhập API key trước")
                         return
                     }
                     await engine.enroll(sourceImage: image, apiKey: apiKey)
