@@ -7,8 +7,12 @@ import AmigoFaceSwapSDK
 
 @MainActor
 final class FaceSwapEngine: ObservableObject {
-    @Published private(set) var status = "Chưa khởi tạo Face AI"
+    @Published var status = "Chưa khởi tạo Face AI"
     @Published private(set) var targetLatent: Any?
+
+    func setStatus(_ value: String) {
+        status = value
+    }
 
     func enroll(sourceImage: UIImage, apiKey: String) async {
         #if canImport(AmigoFaceSwapSDK)
