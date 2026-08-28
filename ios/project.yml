@@ -5,7 +5,11 @@ options:
   bundleIdPrefix: com.facelive
 settings:
   base:
-    SWIFT_VERSION: 5.0
+    SWIFT_VERSION: 5.9
+packages:
+  AmigoFaceSwapSDK:
+    url: https://github.com/AmigoAIAdmin/AmigoSDK_iOS.git
+    exactVersion: 1.0.2
 targets:
   FaceLiveIOS:
     type: application
@@ -26,3 +30,4 @@ targets:
       - framework: AVFoundation.framework
       - framework: Vision.framework
       - framework: PhotosUI.framework
+      - package: AmigoFaceSwapSDK
