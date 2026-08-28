@@ -17,6 +17,8 @@ targets:
     deploymentTarget: "16.0"
     sources:
       - path: FaceLiveIOS
+        excludes:
+          - CameraModel.swift
     info:
       path: FaceLiveIOS/Info.plist
     settings:
