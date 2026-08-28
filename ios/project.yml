@@ -1,7 +1,7 @@
 name: FaceLiveIOS
 options:
   deploymentTarget:
-    iOS: "15.0"
+    iOS: "16.0"
   bundleIdPrefix: com.facelive
 settings:
   base:
@@ -10,7 +10,7 @@ targets:
   FaceLiveIOS:
     type: application
     platform: iOS
-    deploymentTarget: "15.0"
+    deploymentTarget: "16.0"
     sources:
       - path: FaceLiveIOS
     info:
