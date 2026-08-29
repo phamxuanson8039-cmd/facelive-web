@@ -28,8 +28,4 @@ targets:
         CODE_SIGNING_ALLOWED: NO
         CODE_SIGNING_REQUIRED: NO
     dependencies:
-      - framework: CoreML.framework
-      - framework: AVFoundation.framework
-      - framework: Vision.framework
-      - framework: PhotosUI.framework
       - package: AmigoFaceSwapSDK
