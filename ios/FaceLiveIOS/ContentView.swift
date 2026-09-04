@@ -35,13 +35,21 @@ struct ContentView: View {
 
                     Spacer()
 
-                    Text(engine.status)
-                        .font(.caption)
-                        .multilineTextAlignment(.trailing)
-                        .padding(10)
-                        .background(.black.opacity(0.72))
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
-                        .frame(maxWidth: 230, alignment: .trailing)
+                    VStack(alignment: .trailing, spacing: 3) {
+                        Text(engine.status)
+                            .font(.caption)
+                            .multilineTextAlignment(.trailing)
+                            .frame(maxWidth: 230, alignment: .trailing)
+
+                        if engine.isInitialized {
+                            Text("512 LIVE • ON-DEVICE")
+                                .font(.caption2.weight(.semibold))
+                                .foregroundStyle(.green)
+                        }
+                    }
+                    .padding(10)
+                    .background(.black.opacity(0.72))
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
                 }
                 Spacer()
                 controls
@@ -62,7 +70,9 @@ struct ContentView: View {
                         .font(.largeTitle)
                     Text(engine.isInitialized ? "Chọn ảnh mẫu để bắt đầu" : "Khởi tạo Face AI trước")
                         .font(.headline)
-                    Text("FaceLive xử lý live trực tiếp trên iPhone ở 512px.")
+                    Text(engine.isInitialized
+                         ? "Ảnh mẫu sẽ được dùng để tạo FaceLatent. Sau đó camera chạy live 512px trực tiếp trên iPhone."
+                         : "Sau khi khởi tạo, chọn một ảnh có khuôn mặt rõ và nhìn gần chính diện.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -127,6 +137,12 @@ struct ContentView: View {
                 }
                 .disabled(apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || engine.isBusy)
                 .padding(.horizontal)
+
+                Text("API key chỉ dùng để khởi tạo SDK trong phiên này và không được lưu vào app.")
+                    .font(.caption2)
+                    .foregroundStyle(.white.opacity(0.7))
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 20)
             } else {
                 PhotosPicker(selection: $selectedPhoto, matching: .images) {
                     HStack {
