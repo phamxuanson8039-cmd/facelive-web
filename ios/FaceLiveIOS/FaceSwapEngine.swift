@@ -8,8 +8,11 @@ import AmigoFaceSwapSDK
 @MainActor
 final class FaceSwapEngine: ObservableObject {
     @Published var status = "Chưa khởi tạo Face AI"
-    @Published private(set) var targetLatent: FaceLatent?
     @Published private(set) var isInitialized = false
+
+    #if canImport(AmigoFaceSwapSDK)
+    @Published private(set) var targetLatent: FaceLatent?
+    #endif
 
     func setStatus(_ value: String) {
         status = value
@@ -61,7 +64,9 @@ final class FaceSwapEngine: ObservableObject {
     }
 
     func resetSource() {
+        #if canImport(AmigoFaceSwapSDK)
         targetLatent = nil
+        #endif
         status = isInitialized ? "Đã khởi tạo — hãy chọn ảnh mẫu" : "Chưa khởi tạo Face AI"
     }
 }
