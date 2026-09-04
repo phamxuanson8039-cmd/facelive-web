@@ -11,6 +11,7 @@ struct ContentView: View {
     @State private var selectedPhoto: PhotosPickerItem?
     @State private var sourceImage: UIImage?
     @State private var apiKey = ""
+    @State private var showSettings = false
 
     private var hasSource: Bool {
         #if canImport(AmigoFaceSwapSDK)
@@ -26,36 +27,55 @@ struct ContentView: View {
                 .ignoresSafeArea()
 
             VStack {
-                HStack(alignment: .top) {
-                    Label("FaceLive AI", systemImage: "face.smiling")
-                        .font(.headline)
-                        .padding(10)
-                        .background(.black.opacity(0.72))
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
-
-                    Spacer()
-
-                    VStack(alignment: .trailing, spacing: 3) {
-                        Text(engine.status)
-                            .font(.caption)
-                            .multilineTextAlignment(.trailing)
-                            .frame(maxWidth: 230, alignment: .trailing)
-
-                        if engine.isInitialized {
-                            Text("512 LIVE • ON-DEVICE")
-                                .font(.caption2.weight(.semibold))
-                                .foregroundStyle(.green)
-                        }
-                    }
-                    .padding(10)
-                    .background(.black.opacity(0.72))
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
-                }
+                header
                 Spacer()
                 controls
             }
             .padding(.top, 6)
         }
+        .sheet(isPresented: $showSettings) {
+            settingsView
+                .presentationDetents([.medium])
+        }
+    }
+
+    private var header: some View {
+        HStack(alignment: .top, spacing: 10) {
+            Label("FaceLive AI", systemImage: "face.smiling")
+                .font(.headline)
+                .padding(10)
+                .background(.black.opacity(0.72))
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+
+            Spacer()
+
+            VStack(alignment: .trailing, spacing: 3) {
+                Text(engine.status)
+                    .font(.caption)
+                    .multilineTextAlignment(.trailing)
+                    .frame(maxWidth: 230, alignment: .trailing)
+
+                if engine.isInitialized {
+                    Text("512 LIVE • ON-DEVICE")
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(.green)
+                }
+            }
+            .padding(10)
+            .background(.black.opacity(0.72))
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+
+            if engine.isInitialized {
+                Button { showSettings = true } label: {
+                    Image(systemName: "gearshape.fill")
+                        .foregroundStyle(.white)
+                        .padding(11)
+                        .background(.black.opacity(0.72))
+                        .clipShape(Circle())
+                }
+            }
+        }
+        .padding(.horizontal, 12)
     }
 
     @ViewBuilder
@@ -115,9 +135,7 @@ struct ContentView: View {
                 Button {
                     Task {
                         await engine.initialize(apiKey: apiKey)
-                        if engine.isInitialized {
-                            apiKey = ""
-                        }
+                        if engine.isInitialized { apiKey = "" }
                     }
                 } label: {
                     HStack {
@@ -171,9 +189,7 @@ struct ContentView: View {
                         }
 
                         let enrolled = await engine.enroll(sourceImage: image)
-                        if enrolled {
-                            sourceImage = image
-                        }
+                        if enrolled { sourceImage = image }
                     }
                 }
 
@@ -196,5 +212,21 @@ struct ContentView: View {
             }
         }
         .padding(.bottom, 12)
+        .background(.black.opacity(0.76))
+    }
+
+    private var settingsView: some View {
+        NavigationStack {
+            Form {
+                Section("FaceLive AI") {
+                    LabeledContent("Trạng thái", value: engine.status)
+                    LabeledContent("Chế độ", value: hasSource ? "512 LIVE • ON-DEVICE" : "Chưa có ảnh mẫu")
+                }
+                Section {
+                    Button("Đóng") { showSettings = false }
+                }
+            }
+            .navigationTitle("Cài đặt")
+        }
     }
 }
