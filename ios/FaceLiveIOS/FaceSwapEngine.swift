@@ -10,6 +10,7 @@ final class FaceSwapEngine: ObservableObject {
     @Published var status = "Chưa khởi tạo Face AI"
     @Published private(set) var isInitialized = false
     @Published private(set) var isBusy = false
+    @Published private(set) var progress: Double = 0
 
     #if canImport(AmigoFaceSwapSDK)
     @Published private(set) var targetLatent: FaceLatent?
@@ -29,18 +30,22 @@ final class FaceSwapEngine: ObservableObject {
 
         #if canImport(AmigoFaceSwapSDK)
         isBusy = true
+        progress = 0
         defer { isBusy = false }
         do {
             status = "Đang khởi tạo Face AI…"
-            try await AmigoFaceSwap.initialize(apiKey: key) { progress in
-                let percent = max(0, min(100, Int(progress * 100)))
-                Task { @MainActor [weak self] in
-                    self?.status = "Đang tải model Face AI… \(percent)%"
+            try await AmigoFaceSwap.initialize(apiKey: key) { [weak self] value in
+                let clamped = max(0, min(1, value))
+                Task { @MainActor in
+                    self?.progress = clamped
+                    self?.status = "Đang tải model Face AI… \(Int(clamped * 100))%"
                 }
             }
+            progress = 1
             isInitialized = true
             status = "Face AI đã sẵn sàng — chọn ảnh mẫu"
         } catch {
+            progress = 0
             status = "LỖI khởi tạo: \(error.localizedDescription)"
         }
         #else
@@ -56,11 +61,13 @@ final class FaceSwapEngine: ObservableObject {
         }
 
         #if canImport(AmigoFaceSwapSDK)
+        guard !isBusy else { return false }
         isBusy = true
         defer { isBusy = false }
         do {
             status = "Đang nhận diện khuôn mặt mẫu…"
-            targetLatent = try await AmigoFaceSwap.enrollFace(from: sourceImage)
+            let latent = try await AmigoFaceSwap.enrollFace(from: sourceImage)
+            targetLatent = latent
             status = "Face AI sẵn sàng — camera live 512px"
             return true
         } catch {
