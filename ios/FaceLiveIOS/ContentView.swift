@@ -51,7 +51,7 @@ struct ContentView: View {
                         .font(.largeTitle)
                     Text(engine.isInitialized ? "Chọn ảnh mẫu để bắt đầu" : "Khởi tạo Face AI trước")
                         .font(.headline)
-                    Text("FaceLive xử lý live trực tiếp trên iPhone.")
+                    Text("FaceLive xử lý live trực tiếp trên iPhone ở 512px.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -74,6 +74,7 @@ struct ContentView: View {
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
                     .submitLabel(.done)
+                    .disabled(engine.isBusy)
 
                 Button {
                     Task {
@@ -81,29 +82,41 @@ struct ContentView: View {
                     }
                 } label: {
                     HStack {
-                        Image(systemName: "bolt.fill")
-                        Text("KHỞI TẠO FACE AI")
+                        if engine.isBusy {
+                            ProgressView()
+                                .tint(.white)
+                            Text("ĐANG KHỞI TẠO…")
+                        } else {
+                            Image(systemName: "bolt.fill")
+                            Text("KHỞI TẠO FACE AI")
+                        }
                     }
                     .frame(maxWidth: .infinity)
                     .padding()
-                    .background(apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? .gray : .green)
+                    .background(apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || engine.isBusy ? .gray : .green)
                     .foregroundStyle(.white)
                     .clipShape(RoundedRectangle(cornerRadius: 14))
                 }
-                .disabled(apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                .disabled(apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || engine.isBusy)
                 .padding(.horizontal)
             } else {
                 PhotosPicker(selection: $selectedPhoto, matching: .images) {
                     HStack {
-                        Image(systemName: sourceImage == nil ? "photo.badge.plus" : "photo.on.rectangle")
-                        Text(sourceImage == nil ? "CHỌN ẢNH MẪU" : "ĐỔI ẢNH MẪU")
+                        if engine.isBusy {
+                            ProgressView()
+                                .tint(.white)
+                        } else {
+                            Image(systemName: sourceImage == nil ? "photo.badge.plus" : "photo.on.rectangle")
+                        }
+                        Text(engine.isBusy ? "ĐANG NHẬN DIỆN ẢNH…" : (sourceImage == nil ? "CHỌN ẢNH MẪU" : "ĐỔI ẢNH MẪU"))
                     }
                     .frame(maxWidth: .infinity)
                     .padding()
-                    .background(.blue)
+                    .background(engine.isBusy ? .gray : .blue)
                     .foregroundStyle(.white)
                     .clipShape(RoundedRectangle(cornerRadius: 14))
                 }
+                .disabled(engine.isBusy)
                 .padding(.horizontal)
                 .onChange(of: selectedPhoto) { item in
                     Task {
@@ -130,6 +143,7 @@ struct ContentView: View {
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 10)
                     }
+                    .disabled(engine.isBusy)
                     .padding(.horizontal)
                 }
             }
