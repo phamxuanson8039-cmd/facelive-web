@@ -12,25 +12,36 @@ struct ContentView: View {
     @State private var sourceImage: UIImage?
     @State private var apiKey = ""
 
+    private var hasSource: Bool {
+        #if canImport(AmigoFaceSwapSDK)
+        return engine.targetLatent != nil
+        #else
+        return sourceImage != nil
+        #endif
+    }
+
     var body: some View {
         ZStack {
             realtimeView
                 .ignoresSafeArea()
 
             VStack {
-                HStack {
-                    Text("FaceLive AI")
+                HStack(alignment: .top) {
+                    Label("FaceLive AI", systemImage: "face.smiling")
                         .font(.headline)
                         .padding(10)
-                        .background(.black.opacity(0.7))
+                        .background(.black.opacity(0.72))
                         .clipShape(RoundedRectangle(cornerRadius: 12))
+
                     Spacer()
+
                     Text(engine.status)
                         .font(.caption)
                         .multilineTextAlignment(.trailing)
                         .padding(10)
-                        .background(.black.opacity(0.7))
+                        .background(.black.opacity(0.72))
                         .clipShape(RoundedRectangle(cornerRadius: 12))
+                        .frame(maxWidth: 230, alignment: .trailing)
                 }
                 Spacer()
                 controls
@@ -79,12 +90,14 @@ struct ContentView: View {
                 Button {
                     Task {
                         await engine.initialize(apiKey: apiKey)
+                        if engine.isInitialized {
+                            apiKey = ""
+                        }
                     }
                 } label: {
                     HStack {
                         if engine.isBusy {
-                            ProgressView()
-                                .tint(.white)
+                            ProgressView().tint(.white)
                             Text("ĐANG KHỞI TẠO…")
                         } else {
                             Image(systemName: "bolt.fill")
@@ -103,12 +116,11 @@ struct ContentView: View {
                 PhotosPicker(selection: $selectedPhoto, matching: .images) {
                     HStack {
                         if engine.isBusy {
-                            ProgressView()
-                                .tint(.white)
+                            ProgressView().tint(.white)
                         } else {
-                            Image(systemName: sourceImage == nil ? "photo.badge.plus" : "photo.on.rectangle")
+                            Image(systemName: hasSource ? "photo.on.rectangle" : "photo.badge.plus")
                         }
-                        Text(engine.isBusy ? "ĐANG NHẬN DIỆN ẢNH…" : (sourceImage == nil ? "CHỌN ẢNH MẪU" : "ĐỔI ẢNH MẪU"))
+                        Text(engine.isBusy ? "ĐANG NHẬN DIỆN ẢNH…" : (hasSource ? "ĐỔI ẢNH MẪU" : "CHỌN ẢNH MẪU"))
                     }
                     .frame(maxWidth: .infinity)
                     .padding()
@@ -125,12 +137,15 @@ struct ContentView: View {
                               let image = UIImage(data: data) else {
                             return
                         }
-                        sourceImage = image
-                        await engine.enroll(sourceImage: image)
+
+                        let enrolled = await engine.enroll(sourceImage: image)
+                        if enrolled {
+                            sourceImage = image
+                        }
                     }
                 }
 
-                if sourceImage != nil {
+                if hasSource {
                     Button(role: .destructive) {
                         selectedPhoto = nil
                         sourceImage = nil
