@@ -87,6 +87,21 @@ struct ContentView: View {
                     .submitLabel(.done)
                     .disabled(engine.isBusy)
 
+                if engine.isBusy {
+                    VStack(alignment: .leading, spacing: 6) {
+                        HStack {
+                            Text("Đang tải model AI")
+                                .font(.caption)
+                            Spacer()
+                            Text("\(Int(engine.progress * 100))%")
+                                .font(.caption.monospacedDigit())
+                        }
+                        ProgressView(value: engine.progress)
+                            .tint(.green)
+                    }
+                    .padding(.horizontal)
+                }
+
                 Button {
                     Task {
                         await engine.initialize(apiKey: apiKey)
@@ -135,6 +150,7 @@ struct ContentView: View {
                         guard let item,
                               let data = try? await item.loadTransferable(type: Data.self),
                               let image = UIImage(data: data) else {
+                            engine.setStatus("Không đọc được ảnh mẫu")
                             return
                         }
 
