@@ -48,10 +48,11 @@ final class FaceSwapEngine: ObservableObject {
         #endif
     }
 
-    func enroll(sourceImage: UIImage) async {
+    @discardableResult
+    func enroll(sourceImage: UIImage) async -> Bool {
         guard isInitialized else {
             status = "Hãy khởi tạo Face AI trước"
-            return
+            return false
         }
 
         #if canImport(AmigoFaceSwapSDK)
@@ -61,12 +62,15 @@ final class FaceSwapEngine: ObservableObject {
             status = "Đang nhận diện khuôn mặt mẫu…"
             targetLatent = try await AmigoFaceSwap.enrollFace(from: sourceImage)
             status = "Face AI sẵn sàng — camera live 512px"
+            return true
         } catch {
             targetLatent = nil
             status = "LỖI ảnh mẫu: \(error.localizedDescription)"
+            return false
         }
         #else
         status = "Chưa thêm AmigoFaceSwapSDK vào Xcode"
+        return false
         #endif
     }
 
