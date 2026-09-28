@@ -37,7 +37,7 @@ final class FaceSwapEngine: ObservableObject {
             try await AmigoFaceSwap.initialize(apiKey: key) { [weak self] value in
                 let clamped = max(0, min(1, value))
                 Task { @MainActor in
-                    self?.progress = clamped
+                    self?.progress = Double(clamped)
                     self?.status = "Đang tải model Face AI… \(Int(clamped * 100))%"
                 }
             }
