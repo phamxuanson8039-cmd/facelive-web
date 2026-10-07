@@ -110,7 +110,131 @@ $('call')?.addEventListener('click',()=>{
 
 if(isIOS){
   peer=new Peer();
-  peer.on('open',id=>status('iPhone sẵn sàng — nhập ID ASUS rồi bấm NHẬN VIDEO BRIO'));
+  peer.on('open',id=>{$('myid2').textContent=id;status('iPhone sẵn sàng — gửi ID này cho ASUS')});
+  peer.on('call',incoming=>{
+    incoming.answer();
+    incoming.on('stream',s=>{
+      $('remoteVideo').srcObject=s;
+      const t=s.getVideoTracks()[0];
+      const q=t?.getSettings?.()||{};
+      status('Đã nhận BRIO: '+(q.width||'?')+'×'+(q.height||'?')+' @ '+(q.frameRate||'?')+'fps');
+    });
+  });
+  peer.on('error',e=>status('WebRTC lỗi: '+e.type));
+});
+}else{
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>FaceLive BRIO → iPhone</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#111;color:#fff;font-family:-apple-system,BlinkMacSystemFont,Arial,sans-serif;padding:16px}
+.card{max-width:720px;margin:auto;background:#1d1d1f;border-radius:18px;padding:18px}
+h1{font-size:22px;margin:0 0 8px}.muted{color:#aaa;font-size:13px;line-height:1.5}
+label{display:block;margin-top:14px;font-size:13px;color:#ccc}
+select,input,button{width:100%;margin-top:7px;padding:13px;border:0;border-radius:12px;font-size:16px}
+button{background:#1769ff;color:#fff;font-weight:700}.green{background:#16a34a}.gray{background:#444}
+video{width:100%;aspect-ratio:16/9;object-fit:cover;background:#000;border-radius:14px;margin-top:14px}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}.id{font-family:monospace;font-size:18px;word-break:break-all;background:#000;padding:12px;border-radius:10px;margin-top:7px}
+#status{margin-top:12px;padding:10px;border-radius:10px;background:#292929;font-size:13px}
+.hide{display:none}
+</style>
+</head>
+<body>
+<div class="card">
+<h1>BRIO 4K → iPhone</h1>
+<div class="muted">Bản kiểm tra đường truyền trước khi ghép FaceLive AI. ASUS phát video BRIO qua WebRTC; iPhone chỉ nhận video.</div>
+
+<div id="sender">
+<label>Camera trên ASUS</label>
+<select id="cams"></select>
+<button id="start" class="green">BẬT BRIO</button>
+<label>ID của ASUS</label>
+<div id="myid" class="id">Đang tạo…</div>
+<label>ID nhập trên iPhone</label>
+<div class="muted">Sau khi BRIO chạy, mở trang này trên iPhone và nhập ID ASUS.</div>
+<input id="remote" placeholder="Dán ID ASUS vào đây">
+<button id="call">TRUYỀN BRIO SANG IPHONE</button>
+<video id="local" autoplay playsinline muted></video>
+</div>
+
+<div id="receiver" class="hide">
+<label>ID ASUS cần kết nối</label>
+<input id="remote2" placeholder="Nhập ID hiển thị trên ASUS">
+<button id="connect" class="green">NHẬN VIDEO BRIO</button>
+<video id="remoteVideo" autoplay playsinline controls></video>
+</div>
+
+<div id="status">● Đang khởi động…</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.5/dist/peerjs.min.js"></script>
+<script>
+const isIOS=/iPhone|iPad|iPod/i.test(navigator.userAgent);
+const $=id=>document.getElementById(id);
+let peer,stream,call;
+
+$('sender').classList.toggle('hide',isIOS);
+$('receiver').classList.toggle('hide',!isIOS);
+
+function status(s){$('status').textContent='● '+s}
+
+async function listCameras(){
+  try{
+    const temp=await navigator.mediaDevices.getUserMedia({video:true,audio:false});
+    temp.getTracks().forEach(t=>t.stop());
+  }catch(e){}
+  const ds=await navigator.mediaDevices.enumerateDevices();
+  const cams=ds.filter(d=>d.kind==='videoinput');
+  $('cams').innerHTML='';
+  cams.forEach((d,i)=>{
+    const o=document.createElement('option');
+    o.value=d.deviceId;o.textContent=d.label||('Camera '+(i+1));
+    $('cams').appendChild(o);
+  });
+  const brio=cams.find(d=>/brio/i.test(d.label));
+  if(brio)$('cams').value=brio.deviceId;
+}
+
+async function startCamera(){
+  const id=$('cams').value;
+  if(stream)stream.getTracks().forEach(t=>t.stop());
+  stream=await navigator.mediaDevices.getUserMedia({
+    audio:false,
+    video:id?{deviceId:{exact:id},width:{ideal:1920},height:{ideal:1080},frameRate:{ideal:30,max:30}}:
+      {width:{ideal:1920},height:{ideal:1080},frameRate:{ideal:30,max:30}}
+  });
+  $('local').srcObject=stream;
+  const s=stream.getVideoTracks()[0].getSettings();
+  status('BRIO đang chạy '+(s.width||'?')+'×'+(s.height||'?')+' @ '+(s.frameRate||'?')+'fps');
+}
+
+function initPeer(){
+  peer=new Peer();
+  peer.on('open',id=>{$('myid').textContent=id;status('ASUS sẵn sàng — gửi ID này sang iPhone')});
+  peer.on('call',incoming=>{
+    if(!stream){status('Hãy bật BRIO trước');return}
+    incoming.answer(stream);
+  });
+  peer.on('error',e=>status('WebRTC lỗi: '+e.type));
+}
+
+$('start')?.addEventListener('click',async()=>{
+  try{await startCamera();}catch(e){status('Không mở được BRIO: '+e.message)}
+});
+$('call')?.addEventListener('click',()=>{
+  const id=$('remote').value.trim();
+  if(!id||!stream){status('Cần ID iPhone và BRIO đang chạy');return}
+  call=peer.call(id,stream);
+  status('Đang kết nối iPhone…');
+  call.on('close',()=>status('Kết nối đã đóng'));
+  call.on('error',e=>status('Kết nối lỗi: '+e.type));
+});
+
+if(isIOS){
+  peer=new Peer();
+  peer.on('open',id=>{$('myid2').textContent=id;status('iPhone sẵn sàng — gửi ID này cho ASUS')});
   peer.on('call',incoming=>{
     incoming.answer();
     incoming.on('stream',s=>{
